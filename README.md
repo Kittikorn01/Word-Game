@@ -1,6 +1,6 @@
-ï»¿# Word Search Adventure - Prompt 2.1
+# Word Search Adventure - Prompt 3
 
-Refines the existing Three.js + TypeScript + Vite project. No dependencies added, no Git commands, no scene redesign. No word validation, quests, hints, scan or world reactions.
+Continues the existing Three.js + TypeScript + Vite runtime with stage word validation. No new dependencies. No dictionary/API, quests, world reactions, stage completion or persistence.
 
 ## Run
 
@@ -10,103 +10,76 @@ npm.cmd test
 npm.cmd run build
 ```
 
-Open the URL printed by Vite (normally http://127.0.0.1:5173). Requires a desktop keyboard/mouse and WebGL 2 browser.
+Open the Vite URL (normally http://127.0.0.1:5173) using a desktop keyboard/mouse and WebGL 2 browser.
 
-## Movement and input contract
+## Validation flow
 
-- One fresh W/A/S/D or arrow keydown requests one cardinal tile. Holding does not repeat: release and press again.
-- First received keydown wins. Commands received during a step are discarded, without a queue. Simultaneous keys can never produce diagonal motion.
-- A step takes approximately 0.18 seconds, with smoothstep interpolation between tile centers. Simulation runs at 60 Hz. No velocity integration, diagonal normalization or floating-point gameplay position remains.
-- Out-of-board commands do nothing. Every finished step ends at the exact target tile center.
-- `player.currentTile` is the authoritative committed row/column; `targetTile` is the pending destination. Current tile stays at the source during animation and changes once on arrival.
-- Stage data now has `playerStart: { row: 4, column: 3 }`, preserving the former spawn center (0,1). Change row/column in stage data to change spawn. Invalid coordinates fail early.
-- Mouse down anywhere on the canvas starts from the committed current tile, regardless of pointer position. DOM UI blocks starts; tile raycasting remains only for hover.
-- Pressing mouse during a step starts with its source tile. Releasing during a step submits only the letters already reached; movement still finishes and cannot add a letter after submission.
-- Blur/visibility/capture cancellation clears selection. Hidden-tab/context-loss animation pauses and resumes its pending step on return; it does not discard or compound the destination. No new movement/selection starts during context loss.
+Movement arrival -> WordSelection builds a path -> mouse release creates a frozen WordSubmission -> stage WordValidator -> resolveWord updates gameplay state -> WordFeedback -> tile/path renderers and DOM overlay.
 
-## Data flow
+Stage 1 vocabulary remains the source of truth in src/stages/stage1.ts. The pure validator normalizes submissions, vocabulary and completed words with trim/uppercase. It returns CORRECT, WRONG or ALREADY_COMPLETED plus normalized word and selectedTileIds. Selection and renderer contain no target vocabulary or validation rules.
 
-KeyboardInput -> requestMovement -> currentTile/targetTile/elapsed -> GameView derives interpolated world position.
+GameState.words.completedWords is an initially empty, readonly array snapshot. resolveWord replaces it only on a new correct word. It survives feedback cleanup and focus/context interruption, but resets when the runtime restarts or the page reloads. No completed state is attached permanently to tiles.
 
-Mouse hold on canvas -> WordSelection.start(currentPlayerTile).
+WordSelection retains its original submit-and-clear contract. WordFeedback retains the submitted tile snapshot for presentation, keeping the visible path and word until resolution ends. GameApp blocks fresh selection starts while feedback resolves. Timings: correct 0.9 seconds, wrong 1.1 seconds, already found 0.75 seconds. No timer callbacks overlap. Movement remains available and pending steps still finish; releasing mid-step submits only committed tiles, as before.
 
-Movement arrival -> PlayerTileTracker reads committed row/column -> existing WordSelection adjacency/backtrack/reuse rules -> tile renderer / connection path / current-word HUD.
+Correct uses the existing tile CORRECT pulse/lift with warm glow and a brighter path. Wrong uses a soft color shift and fading path, without penalty. Already found uses a subtle highlight. At completion all affected tile state/timers, path and current-word UI clear; normal hover can still apply. Player position and floating letter are preserved. Blur, hidden tab and context loss clear transient feedback without undoing completed words.
 
-FloatingLetterView reads the committed tile letter and follows the rendered player position. Its camera-facing Sprite has a small warm backing plate above the hat. During transit it keeps the source letter, then changes on arrival. It shows one letter (where the player is), while the existing top-center HUD shows the complete selected word.
+The former UI-owned `Submitted: WORD` message and 1.8-second timer have been replaced. There is no temporary development HUD or global debug hook. The optional startGame onWordSubmitted callback remains a submission observer.
+
+## Future policy boundary
+
+createStageWordValidator(stage.vocabulary) in GameApp is the current policy. A future active-quest validator can implement the same WordValidator signature and be supplied here without changing WordSelection. No quest implementation or placeholder quest data is included.
 
 ## Files
 
 New:
-- `src/render/FloatingLetterView.ts`: billboard canvas texture, backing plate, current-letter updates and resource disposal.
+- src/validation/WordValidator.ts
+- src/simulation/WordProgress.ts
+- src/feedback/WordFeedback.ts
+- tests/validation.test.mjs
 
 Modified:
-- `src/simulation/types.ts`: coordinate-based player state.
-- `src/simulation/update.ts`: validated spawn, cardinal step request, input lock and arrival commit; replaces free-motion speed/radius/velocity and boundary-clamp logic.
-- `src/input/KeyboardInput.ts`: keydown commands instead of continuously reading held axes; ignores repeats.
-- `src/simulation/PlayerTileTracker.ts`: committed grid lookup instead of per-frame world-to-grid detection.
-- `src/stages/types.ts`, `src/stages/prototype.ts`: data-driven playerStart replaces world-coordinate spawn; Stage 1 inherits it.
-- `src/selection/WordSelection.ts`: start accepts current tile only; path/backtracking/reuse/submit unchanged.
-- `src/input/WordSelectionInput.ts`: start callback no longer receives pointer coordinates; capture/release/cancel safety retained.
-- `src/app/GameApp.ts`: connects grid movement, current-tile selection and lifecycle.
-- `src/render/GameView.ts`: derives render position from coordinates/step progress, adds/disposes floating letter.
-- `src/ui/createOverlay.ts`: English instructions for tap-to-step and canvas hold.
-- `tests/movement.test.mjs`: replaces obsolete free-movement expectations with grid/input/integration checks.
-- `tests/selection.test.mjs`: updated start/tracker contract; existing rule/safety coverage retained.
-- `README.md`; generated `dist/` output.
+- src/app/GameApp.ts
+- src/simulation/types.ts
+- src/simulation/update.ts
+- src/render/GameView.ts
+- src/render/LetterGridView.ts
+- src/render/SelectionPathView.ts
+- src/ui/WordSelectionOverlay.ts
+- src/ui/styles.css
+- README.md
+- dist/ (regenerated by production build)
 
-No files deleted in this refinement. The removed Prompt 1 click/C/R debug interaction stays removed. Grid, hover, selected visuals, connection path, camera, lighting and decoration retain their existing implementation.
+Stage data, selection rules, input adapters, grid layout, camera, environment and floating-letter implementation are unchanged.
 
-## Submission boundary / placeholder
+## Manual verification
 
-`startGame(host, stage, onWordSubmitted)` retains the optional callback and frozen snapshot:
+Coordinates below are zero-based (row,column). Spawn is (4,3). Tap Up four times then Left three times to reach KEY's K, waiting for each move to finish. Each fresh WASD/arrow press moves one cardinal tile; held keys do not repeat.
 
-```js
-{
-  word: 'KEY',
-  selectedTileIds: ['stage-1-letter-clearing:0:0', 'stage-1-letter-clearing:0:1', 'stage-1-letter-clearing:0:2'],
-  path: [
-    { id: 'stage-1-letter-clearing:0:0', letter: 'K', row: 0, column: 0 },
-    { id: 'stage-1-letter-clearing:0:1', letter: 'E', row: 0, column: 1 },
-    { id: 'stage-1-letter-clearing:0:2', letter: 'Y', row: 0, column: 2 }
-  ]
-}
-```
+For every row below, walk to the start without holding the mouse, then hold left mouse on empty canvas and tap Right the specified number of times, waiting for each arrival. Release at the final tile.
 
-Release clears selection and shows neutral `Submitted: KEY` for 1.8 seconds. No correct/wrong state is triggered. This neutral feedback and callback remain the future validation integration point; Prompt 3 is not implemented.
+| Word | Start | Right taps | End |
+| --- | --- | --- | --- |
+| KEY | (0,0) | 2 | (0,2) |
+| LIGHT | (1,1) | 4 | (1,5) |
+| WATER | (2,0) | 4 | (2,4) |
+| BOOK | (3,1) | 3 | (3,4) |
+| DOOR | (4,0) | 3 | (4,3) |
+| OPEN | (5,1) | 3 | (5,4) |
 
-## Manual tests
+- CORRECT: Each first submission shows WORD FOUND, warm tile pulse and brighter path; selection clears after 0.9 seconds. Player remains on the last tile unless moved. Test KEY then BOOK to accumulate both words.
+- WRONG: Build KE and release. Expect `KE · That word isn't needed here.`, gentle tile color and path fade. No progress loss or player reset.
+- ALREADY_COMPLETED: Walk back to K and build KEY again. Expect `KEY · Already found.`, lighter feedback, no full correct pulse. Repeating must never add progress twice.
+- Letters remain: After KEY, select and walk over K/E/Y again. All original letters remain reusable.
+- Backtracking: Hold through K -> E -> Y -> E. UI reads KE and no validation occurs until release.
+- Fast input: Repeatedly press/release mouse during resolving. No new selection/overlapping feedback occurs. After feedback a fresh press must work. Try release outside canvas, blur, tab switching and release mid-step.
+- Regression: Check one press/one tile, no diagonal, hover, floating letter on each arrival, camera, lighting and wide/narrow layouts. Inspect browser console.
+- Gameplay state: No progress HUD was added. For manual state inspection, place a debugger breakpoint after feedback.begin in GameApp and inspect state.words.completedWords. Automated tests also assert all six completed words and duplicate rejection.
 
-From original spawn (4,3), tap Up four times and Left three times, waiting for each step, to reach K at (0,0). E/Y are (0,1)/(0,2). Use fresh presses for each step.
+## Verification and limitations
 
-| Test | Actions | Expected |
-| --- | --- | --- |
-| 1 One step | At K, press Right once | Animate to E, stop at center; no further movement |
-| 2 Hold | Hold Right through and after a step | Exactly one step; release/repress for another |
-| 3 No diagonal | From an interior tile press W and D together | First received direction only; next input during animation discarded |
-| 4 Boundary | At K press Up or Left; repeat at other edges | Remain at same center, letter and selection unchanged |
-| 5 Auto start | At K aim at empty canvas ground, hold left mouse | Select K immediately without aiming at K |
-| 6 Build KEY | Hold mouse; tap Right, wait; tap Right, wait | UI K -> KE -> KEY, selected K/E/Y and two path segments |
-| 7 Backtrack | While holding at Y, tap Left, wait | Return E, remove Y/latest segment; word KE |
-| 8 Floating letter | Walk K -> E -> Y without selection | Marker above head changes K -> E -> Y on arrival and faces camera |
-| 9 Separate roles | Build KEY and remain holding at Y | Top HUD KEY; above-head marker Y |
-| 10 UI click | Hold on scene label, controls or word HUD | No new selection; then a fresh canvas press starts normally |
-| 11 Submit | Build KEY, release left mouse | One KEY submission, temporary Submitted: KEY, no judgment |
-| 12 Stability | Rapid/multiple presses; hold/release mouse midway; blur/switch tabs; release outside canvas | No diagonal, extra queued steps, out-of-grid position or permanent mid-tile stop; release uses committed path, cancellation clears; inspect console |
+22/22 automated tests pass. Existing movement/grid/selection tests remain unchanged and pass. New tests exercise all six real board paths through submission, validation, progress and feedback; normalization; wrong words; duplicates; resolving start guard; retained path; cleanup; tile reuse; and interrupted feedback.
 
-Also check hover priority while selecting, repeated backtracks, non-previous tile reuse, and wide/square/narrow rendering. Preserve the Stage 1 board:
+TypeScript and production build pass. Existing Vite large-chunk warning remains (approximately 563 kB minified / 142 kB gzip).
 
-```text
-KEYAMXZ
-NLIGHTP
-WATERUS
-CBOOKVN
-DOORHIA
-TOPENEF
-QILFEOQ
-```
-
-## Verification / limitations
-
-19/19 automated tests pass, including grid data, cardinal movement, input lock/repeat suppression, boundaries, KEY/backtracking, mid-animation start/release and pointer safety. TypeScript and production build pass. The existing Vite large-chunk warning remains (about 561 kB minified / 142 kB gzip).
-
-Connected-browser inventory again returned no browsers. Actual browser playtest, console verification, responsive visual QA and floating-letter/path screenshots remain unverified; the manual cases above are needed. EventTarget input tests do not establish browser-native pointer-capture behavior. No touch/mobile controls added. Fast presses during a step are intentionally discarded rather than buffered.
+Browser inventory returned no connected browsers. Browser-native pointer capture, actual console output, animation screenshots and responsive visual QA remain unverified. Automated input/state tests do not substitute for those manual checks. No touch controls or save system are included.

@@ -9,6 +9,9 @@ import { WordSelection, type WordSubmission } from '../selection/WordSelection.t
 import { PlayerTileTracker } from '../simulation/PlayerTileTracker.ts';
 import { WordSelectionInput } from '../input/WordSelectionInput.ts';
 import { createWordSelectionOverlay } from '../ui/WordSelectionOverlay.ts';
+import { createStageWordValidator } from '../validation/WordValidator.ts';
+import { resolveWord } from '../simulation/WordProgress.ts';
+import { WordFeedback } from '../feedback/WordFeedback.ts';
 
 export function startGame(host: HTMLElement, stage: StageDefinition, onWordSubmitted: (submission: WordSubmission) => void = () => {}): () => void {
   const ui = createOverlay(host);
@@ -22,17 +25,25 @@ export function startGame(host: HTMLElement, stage: StageDefinition, onWordSubmi
   });
   const pointer = new TilePointerInput(view.renderer.domElement, view.pickTile, id => grid.setHovered(id));
   const wordUI = createWordSelectionOverlay(host);
-  const selection = new WordSelection(grid, result => { wordUI.submitted(result); onWordSubmitted(result); });
+  const validate = createStageWordValidator(stage.vocabulary ?? []);
+  const feedback = new WordFeedback(grid);
+  const selection = new WordSelection(grid, submission => {
+    if (feedback.isResolving) return;
+    const result = resolveWord(state.words, submission, validate);
+    feedback.begin(result);
+    wordUI.show(result);
+    onWordSubmitted(submission);
+  });
   const tracker = new PlayerTileTracker(grid); tracker.update(state.player.currentTile);
   const selectionInput = new WordSelectionInput(view.renderer.domElement, () => {
-    if (lost || document.hidden) return false;
+    if (lost || document.hidden || feedback.isResolving) return false;
     tracker.update(state.player.currentTile);
     return selection.start(tracker.currentPlayerTile);
   }, () => { selection.submit(); }, () => selection.cancel());
   const abort = new AbortController();
   let lastTime = 0, accumulator = 0, lost = false;
   const step = 1 / 60;
-  const resetClock = () => { lastTime = 0; accumulator = 0; input.clear(); selectionInput.reset(); };
+  const resetClock = () => { lastTime = 0; accumulator = 0; input.clear(); selectionInput.reset(); feedback.clear(); wordUI.clear(); };
   window.addEventListener('blur', resetClock, { signal: abort.signal });
   document.addEventListener('visibilitychange', resetClock, { signal: abort.signal });
   view.renderer.domElement.addEventListener('webglcontextlost', event => {
@@ -50,10 +61,11 @@ export function startGame(host: HTMLElement, stage: StageDefinition, onWordSubmi
     while (accumulator >= step) {
       updateMovement(state, step);
       if (tracker.update(state.player.currentTile)) selection.enterTile(tracker.currentPlayerTile);
-      grid.update(step); accumulator -= step;
+      grid.update(step); feedback.update(step); accumulator -= step;
     }
     wordUI.update(selection, dt);
-    view.render(state, dt, selection.selectedTiles);
+    view.render(state, dt, feedback.isResolving ? feedback.selectedTiles : selection.selectedTiles, feedback.visual);
   });
   return () => { view.renderer.setAnimationLoop(null); abort.abort(); selectionInput.dispose(); wordUI.dispose(); pointer.dispose(); input.dispose(); view.dispose(); ui.dispose(); };
 }
+

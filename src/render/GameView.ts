@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { FeedbackVisual } from '../feedback/WordFeedback.ts';
 import { FloatingLetterView } from './FloatingLetterView.ts';
 import { STEP_DURATION } from '../simulation/update.ts';
 import { gridToWorld } from '../stages/types.ts';
@@ -52,9 +53,9 @@ export class GameView {
     this.resizeObserver = new ResizeObserver(resize); this.resizeObserver.observe(host); resize();
   }
   pickTile = (x: number, y: number): string | null => this.letters.pick(x, y, this.renderer.domElement, this.camera);
-  render(state: GameState, dt: number, selectedTiles: readonly LetterTile[] = []): void {
-    this.letters.update(dt, new Set(selectedTiles.map(tile => tile.id)));
-    this.selectionPath.update(selectedTiles);
+  render(state: GameState, dt: number, selectedTiles: readonly LetterTile[] = [], feedback?: FeedbackVisual): void {
+    this.letters.update(dt, new Set(selectedTiles.map(tile => tile.id)), feedback);
+    this.selectionPath.update(selectedTiles, feedback);
     const current = state.player.currentTile, target = state.player.targetTile ?? current;
     const from = gridToWorld(current.column, current.row, this.grid.definition);
     const to = gridToWorld(target.column, target.row, this.grid.definition);

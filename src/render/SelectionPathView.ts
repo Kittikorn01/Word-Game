@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { FeedbackVisual } from '../feedback/WordFeedback.ts';
 import type { LetterTile } from '../grid/types.ts';
 
 export class SelectionPathView {
@@ -6,7 +7,10 @@ export class SelectionPathView {
   private geometry = new THREE.BoxGeometry(1, 1, 1);
   private material = new THREE.MeshBasicMaterial({ color: '#ffe1a0', transparent: true, opacity: 0.75, depthWrite: false });
   private segments: THREE.Mesh[] = [];
-  update(tiles: readonly LetterTile[]): void {
+  update(tiles: readonly LetterTile[], feedback?: FeedbackVisual): void {
+    this.material.color.set(feedback?.tone === 'correct' ? '#fff2c8' : '#ffe1a0');
+    this.material.opacity = feedback?.tone === 'wrong' ? 0.75 * (1 - feedback.progress)
+      : feedback?.tone === 'correct' ? 0.95 : feedback?.tone === 'already' ? 0.45 : 0.75;
     const count = Math.max(0, tiles.length - 1);
     while (this.segments.length > count) this.root.remove(this.segments.pop()!);
     while (this.segments.length < count) {

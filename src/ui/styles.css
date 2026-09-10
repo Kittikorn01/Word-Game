@@ -14,8 +14,17 @@ kbd { font: inherit; font-weight: 600; letter-spacing: 0.08em; }
 .overlay > * { pointer-events: auto; }
 .selection-hint { position: absolute; bottom: 3px; width: 100%; margin: 0; text-align: center; font-size: 10px; }
 .word-selection { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); max-width: min(54vw, 600px); overflow-wrap: anywhere; padding: 8px 18px; border: 1px solid #fff5db; border-radius: 20px; background: #faf1dbed; color: #394b3e; font-size: 19px; font-weight: 650; letter-spacing: 0.12em; text-align: center; }
+.word-selection[data-tone='correct'] { --feedback-ink: #2c6343; --feedback-panel: #edf6eaff; --feedback-border: #a6c7a6; --feedback-badge: #dcebd8; }
+.word-selection[data-tone='already'] { --feedback-ink: #805b21; --feedback-panel: #fff5dfff; --feedback-border: #d7bb78; --feedback-badge: #f5e7bd; }
+.word-selection[data-tone='wrong'] { --feedback-ink: #914e4b; --feedback-panel: #fcf0ecff; --feedback-border: #d6aaa2; --feedback-badge: #f3dfd9; }
+.word-selection[data-tone]:not([data-tone='']) { padding: 12px 20px; max-width: min(54vw, 360px); border-radius: 16px; background: var(--feedback-panel); border-color: var(--feedback-border); color: var(--feedback-ink); box-shadow: 0 4px 16px #34483714; }
+.word-selection[data-tone]:not([data-tone='']) .word-selection__word { font-size: 25px; font-weight: 750; line-height: 1.15; letter-spacing: 0.1em; }
+.word-selection__status { margin-top: 8px; padding: 4px 9px; border-radius: 8px; background: var(--feedback-badge); font-size: 13px; font-weight: 550; line-height: 1.4; letter-spacing: 0.01em; }
+.word-selection[data-tone='correct'] .word-selection__status { font-size: 11px; font-weight: 750; letter-spacing: 0.12em; }
 @media (max-width: 600px) {
   .word-selection { top: 64px; max-width: 90vw; font-size: 16px; }
+  .word-selection[data-tone]:not([data-tone='']) { max-width: min(90vw, 340px); padding: 10px 16px; }
+  .word-selection[data-tone]:not([data-tone='']) .word-selection__word { font-size: 22px; }
   .selection-hint { padding: 0 10px; font-size: 9px; }
   .controls { bottom: 28px; }
 }
