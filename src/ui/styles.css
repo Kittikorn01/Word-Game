@@ -1,0 +1,12 @@
+:root { font-family: 'Segoe UI', sans-serif; color: #445449; background: #dce4d6; font-synthesis: none; }
+* { box-sizing: border-box; }
+html, body, #app { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+#app { position: relative; }
+canvas { display: block; width: 100%; height: 100%; }
+.overlay { position: absolute; inset: 0; pointer-events: none; }
+.scene-label { position: absolute; top: 25px; left: 28px; font-size: 11px; font-weight: 650; letter-spacing: 0.18em; }
+.scene-label span { display: block; margin-top: 6px; font-size: 12px; font-weight: 400; letter-spacing: 0.02em; opacity: 0.75; }
+.controls { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; white-space: nowrap; font-size: 12px; padding: 10px 16px; border: 1px solid #ffffff80; border-radius: 25px; background: #f7f5e8d9; }
+kbd { font: inherit; font-weight: 600; letter-spacing: 0.08em; }
+.notice { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: 420px; width: calc(100% - 40px); padding: 18px; background: #fff9ec; border-radius: 12px; text-align: center; }
+@media (max-width: 600px) { .scene-label { top: 16px; left: 16px; } .controls { bottom: 12px; font-size: 11px; gap: 7px; } }
