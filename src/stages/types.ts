@@ -2,6 +2,8 @@ import type { MovementBounds, Position } from '../simulation/types.ts';
 export interface StageDefinition {
   id: string;
   grid: { columns: number; rows: number; tileSize: number };
+  letterLayout?: readonly string[];
+  vocabulary?: readonly string[];
   spawn: Position;
   decorations: readonly (Position & { kind: 'tree' | 'rock'; scale: number })[];
 }

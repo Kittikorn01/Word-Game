@@ -4,6 +4,8 @@ import type { GameState } from '../simulation/types.ts';
 import type { StageDefinition } from '../stages/types.ts';
 import { createDiorama } from './createDiorama.ts';
 import { createPlayer } from './createPlayer.ts';
+import { LetterGridView } from './LetterGridView.ts';
+import type { LetterGrid } from '../grid/LetterGrid.ts';
 
 export class GameView {
   readonly renderer: THREE.WebGLRenderer;
@@ -12,7 +14,8 @@ export class GameView {
   private camera = new THREE.OrthographicCamera(-8, 8, 8, -8, 0.1, 100);
   private player = createPlayer(this.assets);
   private resizeObserver: ResizeObserver;
-  constructor(private host: HTMLElement, stage: StageDefinition) {
+  private letters: LetterGridView;
+  constructor(private host: HTMLElement, stage: StageDefinition, grid: LetterGrid) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
@@ -30,6 +33,7 @@ export class GameView {
     sun.shadow.normalBias = 0.04; this.scene.add(sun);
     const ground = this.assets.mesh('box', 'ground'); ground.scale.set(200, 0.1, 200); ground.position.y = -0.87; ground.castShadow = false;
     this.scene.add(ground, createDiorama(stage, this.assets), this.player);
+    this.letters = new LetterGridView(grid, this.assets); this.scene.add(this.letters.root);
     const resize = () => {
       const width = Math.max(1, host.clientWidth), height = Math.max(1, host.clientHeight);
       const aspect = width / height;
@@ -40,7 +44,9 @@ export class GameView {
     };
     this.resizeObserver = new ResizeObserver(resize); this.resizeObserver.observe(host); resize();
   }
-  render(state: GameState): void {
+  pickTile = (x: number, y: number): string | null => this.letters.pick(x, y, this.renderer.domElement, this.camera);
+  render(state: GameState, dt: number): void {
+    this.letters.update(dt);
     this.player.position.set(state.player.x, 0.105, state.player.z);
     this.player.rotation.y = state.player.heading;
     this.renderer.render(this.scene, this.camera);
@@ -48,6 +54,6 @@ export class GameView {
   dispose(): void {
     this.resizeObserver.disconnect();
     this.scene.traverse(object => { if (object instanceof THREE.DirectionalLight) object.shadow.dispose(); });
-    this.assets.dispose(); this.renderer.dispose(); this.renderer.domElement.remove();
+    this.letters.dispose(); this.assets.dispose(); this.renderer.dispose(); this.renderer.domElement.remove();
   }
 }

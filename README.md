@@ -1,17 +1,16 @@
-# Word Search Adventure — Prompt 0
+﻿# Word Search Adventure — Prompt 1
 
-A small English-only woodland diorama foundation. There are no word, quest, inventory, progression, hint, scan, or save systems.
+Continues the existing Three.js + TypeScript + Vite foundation. No dependencies added, no Git commands used. The 7 × 7 island, orthographic camera, lighting, decoration and continuous WASD/arrow movement retain their original settings.
 
 ## Run
 
-Use Node.js 22.18+ (or Node 24 LTS) and a desktop browser with WebGL 2 / hardware acceleration. Developed with Node 24.15.0.
+From this folder, with dependencies already installed:
 
 ```powershell
-npm.cmd ci
 npm.cmd run dev
 ```
 
-Open the local URL printed by Vite, normally http://127.0.0.1:5173. `npm.cmd` avoids PowerShell execution-policy restrictions on `npm.ps1`. Other shells can use `npm`.
+Open the URL printed by Vite (normally http://127.0.0.1:5173). For a fresh dependency installation use `npm.cmd ci`. Node 22.18+ / Node 24 and a WebGL 2 browser are required.
 
 ```powershell
 npm.cmd test
@@ -19,63 +18,70 @@ npm.cmd run build
 npm.cmd run preview
 ```
 
-## Expected scene and controls
+## Architecture
 
-The full-screen playfield contains a warm cream 7 × 7 blank tile clearing on a raised grassy island, low-poly trees and rocks outside the walkable area, soft directional shadows, and a small terracotta-coated placeholder explorer. A fixed elevated orthographic camera looks toward the center. Only an unobtrusive scene label and keyboard guide overlay the game.
+GameApp composes stage data → LetterGrid and keyboard → movement simulation, then presents state through GameView. Simulation remains at 60 Hz. Grid modules import no Three.js or DOM APIs.
 
-WASD / arrow keys move along grid axes. Up moves toward the back of the scene; left/right align with screen left/right. Movement is continuous for testing, not tile-stepped. Diagonals are normalized. The player cannot walk beyond tile edges. Camera orientation never follows the player. Mouse has no bindings, pointer lock, or camera controls.
+- `src/stages/stage1.ts`: deterministic layout and vocabulary, reusing prototype dimensions/spawn/decorations.
+- `src/grid/types.ts`: Tile ID, row, column, uppercase letter, logical world center and state contracts.
+- `src/grid/LetterGrid.ts`: creation/validation, ID and coordinate lookup, cardinal adjacency, world mapping, selection state and feedback timer.
+- `src/render/LetterGridView.ts`: data-generated tile bodies, cached CanvasTexture letters, lift/color/pulse animation and raycasting adapter. Shared letter textures are disposed on teardown. Fixed picking proxies keep hover stable while tiles lift; only these proxies are raycast, so decoration and lettering cannot block input.
+- `src/input/TilePointerInput.ts`: pointer coordinates → picked ID → hovered ID; clears on leave/cancel/blur/visibility change and refreshes after resize.
+- `src/debug/TileDebugControls.ts`: temporary click/C/R input binding, isolated from movement and future word selection.
+- `tests/grid.test.mjs`: test-only DFS proves solvability; adjacency, state and mapping checks.
 
-## Stack and architecture
+Tile state is NORMAL / SELECTED / CORRECT. Hover is separate (`grid.hoveredTileId`), so pointer exit cannot discard selection. Effective visual priority is CORRECT > SELECTED > HOVER > NORMAL. CORRECT lasts 0.9 seconds, then returns to NORMAL (or HOVER if the pointer is still there). Rendering reads state without writing gameplay data.
 
-Three.js + strict TypeScript + Vite, following Game Studio's plain 3D path. Three.js is the only runtime dependency. React is unnecessary for the minimal DOM overlay. Physics is unnecessary for a bounded flat test surface; no physics library, GLB loader, or post-processing is included.
+Grid coordinates are zero-based. +column = +X, +row = +Z, Y is height. Existing `gridToWorld(column, row, grid)` remains the forward mapping. `grid.worldToGrid({x,z})` and `grid.tileAtWorld(state.player)` perform inverse lookup. Cell boundaries are half-open: minimum included, maximum excluded; small visual gaps belong to the logical cell. Logical world positions stay fixed during animation. Player movement is still continuous and is not elevated by feedback tiles.
 
-Orthographic projection preserves tile sizes at different depths. The fixed camera has no yaw and approximately 55° elevation; this retains depth and visible object sides without confusing cardinal movement. Its frustum fits the island when the viewport changes.
+## Stage 1 proof
 
-Data flow: keyboard → move action → fixed-step simulation → state → render adapter.
+Rows run from the back of the scene to the front:
 
-| Files | Responsibility |
+```text
+KEYAMXZ
+NLIGHTP
+WATERUS
+CBOOKVN
+DOORHIA
+TOPENEF
+QILFEOQ
+```
+
+Example paths, inclusive endpoints `(row,column)`:
+
+| Word | Path |
 | --- | --- |
-| `index.html`, `src/main.ts` | English document, bootstrap, HMR disposal |
-| `src/app/GameApp.ts` | Composition, 60 Hz simulation loop, visibility/context lifecycle |
-| `src/simulation/types.ts` | Serializable state, movement contracts, future letter tile contract |
-| `src/simulation/update.ts` | Renderer-independent movement, speed normalization, boundary enforcement |
-| `src/input/KeyboardInput.ts` | Physical key → action mapping, blur/visibility cleanup |
-| `src/stages/types.ts` | Stage data contract, grid/world mapping, bounds derivation |
-| `src/stages/prototype.ts` | One scene's dimensions, spawn, decoration placements |
-| `src/assets/PrimitiveAssets.ts` | Stable primitive geometry/material keys, shared ownership and disposal |
-| `src/render/GameView.ts` | Renderer, fixed camera, lights, responsive sizing, state presentation |
-| `src/render/createDiorama.ts` | Placeholder island, blank tiles, trees and rocks |
-| `src/render/createPlayer.ts` | Placeholder character mesh assembly |
-| `src/ui/createOverlay.ts`, `src/ui/styles.css` | Small DOM overlay and graphics failure message |
-| `src/vite-env.d.ts`, `tsconfig.json` | Strict typing and Vite declarations |
-| `package.json`, `package-lock.json`, `.gitignore` | Commands, dependency lock, generated-file exclusions |
-| `tests/movement.test.mjs` | Pure simulation/grid checks with Node's built-in test runner |
+| KEY | (0,0) → (0,1) → (0,2) |
+| LIGHT | (1,1) → (1,2) → (1,3) → (1,4) → (1,5) |
+| WATER | (2,0) → (2,1) → (2,2) → (2,3) → (2,4) |
+| BOOK | (3,1) → (3,2) → (3,3) → (3,4) |
+| DOOR | (4,0) → (4,1) → (4,2) → (4,3) |
+| OPEN | (5,1) → (5,2) → (5,3) → (5,4) |
 
-All files were newly created in an empty project directory. No pre-existing files were replaced and no Git commands were used.
+`npm.cmd test` independently searches the actual board, prints one valid path per word and disallows diagonal steps and tile reuse. It may find a different valid path. There is no runtime word validator.
 
-## Extension boundaries
+## Manual visual/input check
 
-- Simulation and stage data import no Three.js or DOM APIs. Do not use mesh transforms as authoritative gameplay state.
-- Coordinates: Y-up; gameplay uses X/Z. Grid column increases along +X; row increases along +Z. The grid is centered at the origin. Default tile size is one world unit. Character pivot is at its feet.
-- `LetterTile` defines letter, grid position and `normal | hover | selected | correct` status for a later prompt. It is not instantiated or wired to mechanics now.
-- Tile mesh metadata contains only a grid identifier for future picking. Future input can resolve a raycast to this identifier and send an action to simulation.
-- A stage is a plain data object passed at bootstrap. This is not a stage manager or progression system.
-- All current assets are shared primitives. Future shipped models should use GLB/glTF behind asset keys; add loaders only when assets exist.
-- Frame gaps are capped at 100 ms; blur and hidden tabs clear input and timing. Context loss pauses simulation and displays an English status; restoration resumes using current simulation state.
-- Renderer pixel ratio is capped at 2, with one 1024px shadow map and no post-processing.
+1. Open the scene: 49 cream tiles with centered dark uppercase letters (NORMAL). Check I/L/E/F/O/Q on the front row.
+2. Move the pointer over a tile: brighter cream and small lift (HOVER). Move off the board: normal again.
+3. Click: warm amber and a higher lift (SELECTED). Leave the tile: selection persists. Click again: selection clears. Select multiple independent tiles if desired.
+4. Press C: selected tiles turn soft green, rise and pulse, then settle after 0.9 seconds. This is only a debug trigger, not a correct-answer check.
+5. Press R: all selection/feedback clears. A tile still under the pointer resumes hover.
+6. Walk using both WASD and arrows, diagonals/opposing directions, all edges and blur/refocus. Camera and environment should remain unchanged.
+7. Resize wide/square/narrow; check board framing and hint overlap. Small portrait viewports naturally make letters smaller; keyboard remains necessary for movement.
+8. Check browser developer console for errors and test context loss/restoration if desired.
 
-## Validation and manual checklist
+## Validation and limitations
 
-Automated movement tests cover normalized diagonals, four boundaries with character radius, update-rate independence, idle/invalid elapsed time and grid/world alignment.
+Automated tests: 15/15 passed, including all existing movement checks. TypeScript and production build passed. Vite reports a bundle-size warning (approximately 548 kB minified / 139 kB gzip); this is not a build failure.
 
-Browser visual/input QA remains pending: this Codex session has no connected browser, and its in-app browser is unavailable. A successful build alone does not verify WebGL output.
+Visual screenshots, actual mouse/keyboard browser playtest and browser-console verification remain pending: the connected browser tool reports `No browser is available`. Build/test success is not proof of visual quality or an error-free browser console.
 
-1. Open the scene and confirm all 49 blank tiles, explorer, trees, rocks and shadows are visible.
-2. Walk with WASD and arrow keys. Try diagonal/opposing inputs and all four edges. Confirm a static camera and no page scrolling.
-3. Hold a direction, switch focus/tab, then return. The explorer should not continue walking or jump.
-4. Resize the browser to wide, square and narrow proportions. The island should remain visible; narrow screens are viewing-only unless a hardware keyboard is available.
-5. Check the browser console for errors. Test WebGL context loss/restoration using browser developer tools where available.
+The click/C/R binding and small debug hint are temporary and should be removed/replaced in Prompt 2. No hold/drag selection, selection path, connecting lines, word UI, runtime word validation, quests, world reactions or progression were added. Lettering uses system bold Courier New/monospace, with no font download. Player and decorations intentionally do not block tile picking; player geometry can visually cover a letter as it walks across the board.
 
-## Deliberate limitations
+## File changes
 
-Primitive art only; no external assets, animation rig, audio, obstacle collision, touch controls or gameplay. Trees and rocks are decoration outside movement bounds. Movement is not yet constrained to cardinal tile steps. The 60 Hz state is presented without interpolation. No GPU performance or browser compatibility claims have been verified in this session.
+New: `src/stages/stage1.ts`, `src/grid/types.ts`, `src/grid/LetterGrid.ts`, `src/render/LetterGridView.ts`, `src/input/TilePointerInput.ts`, `src/debug/TileDebugControls.ts`, `tests/grid.test.mjs`.
+
+Modified: `src/stages/types.ts`, `src/simulation/types.ts`, `src/render/createDiorama.ts`, `src/render/GameView.ts`, `src/app/GameApp.ts`, `src/main.ts`, `src/ui/createOverlay.ts`, `src/ui/styles.css`, `README.md`. Build output in `dist/` is regenerated by Vite.
