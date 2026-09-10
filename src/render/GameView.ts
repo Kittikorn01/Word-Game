@@ -1,4 +1,9 @@
 import * as THREE from 'three';
+import { FloatingLetterView } from './FloatingLetterView.ts';
+import { STEP_DURATION } from '../simulation/update.ts';
+import { gridToWorld } from '../stages/types.ts';
+import { SelectionPathView } from './SelectionPathView.ts';
+import type { LetterTile } from '../grid/types.ts';
 import { PrimitiveAssets } from '../assets/PrimitiveAssets.ts';
 import type { GameState } from '../simulation/types.ts';
 import type { StageDefinition } from '../stages/types.ts';
@@ -15,7 +20,9 @@ export class GameView {
   private player = createPlayer(this.assets);
   private resizeObserver: ResizeObserver;
   private letters: LetterGridView;
-  constructor(private host: HTMLElement, stage: StageDefinition, grid: LetterGrid) {
+  private selectionPath = new SelectionPathView();
+  private floatingLetter = new FloatingLetterView();
+  constructor(private host: HTMLElement, stage: StageDefinition, private grid: LetterGrid) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
@@ -33,7 +40,7 @@ export class GameView {
     sun.shadow.normalBias = 0.04; this.scene.add(sun);
     const ground = this.assets.mesh('box', 'ground'); ground.scale.set(200, 0.1, 200); ground.position.y = -0.87; ground.castShadow = false;
     this.scene.add(ground, createDiorama(stage, this.assets), this.player);
-    this.letters = new LetterGridView(grid, this.assets); this.scene.add(this.letters.root);
+    this.letters = new LetterGridView(grid, this.assets); this.scene.add(this.letters.root, this.selectionPath.root, this.floatingLetter.sprite);
     const resize = () => {
       const width = Math.max(1, host.clientWidth), height = Math.max(1, host.clientHeight);
       const aspect = width / height;
@@ -45,15 +52,23 @@ export class GameView {
     this.resizeObserver = new ResizeObserver(resize); this.resizeObserver.observe(host); resize();
   }
   pickTile = (x: number, y: number): string | null => this.letters.pick(x, y, this.renderer.domElement, this.camera);
-  render(state: GameState, dt: number): void {
-    this.letters.update(dt);
-    this.player.position.set(state.player.x, 0.105, state.player.z);
+  render(state: GameState, dt: number, selectedTiles: readonly LetterTile[] = []): void {
+    this.letters.update(dt, new Set(selectedTiles.map(tile => tile.id)));
+    this.selectionPath.update(selectedTiles);
+    const current = state.player.currentTile, target = state.player.targetTile ?? current;
+    const from = gridToWorld(current.column, current.row, this.grid.definition);
+    const to = gridToWorld(target.column, target.row, this.grid.definition);
+    const t = state.player.targetTile ? Math.min(1, state.player.elapsed / STEP_DURATION) : 0;
+    const eased = t * t * (3 - 2 * t);
+    const x = THREE.MathUtils.lerp(from.x, to.x, eased), z = THREE.MathUtils.lerp(from.z, to.z, eased);
+    this.player.position.set(x, 0.105, z);
+    this.floatingLetter.update(this.grid.getTile(current.row, current.column)!.letter, x, z);
     this.player.rotation.y = state.player.heading;
     this.renderer.render(this.scene, this.camera);
   }
   dispose(): void {
     this.resizeObserver.disconnect();
     this.scene.traverse(object => { if (object instanceof THREE.DirectionalLight) object.shadow.dispose(); });
-    this.letters.dispose(); this.assets.dispose(); this.renderer.dispose(); this.renderer.domElement.remove();
+    this.floatingLetter.dispose(); this.selectionPath.dispose(); this.letters.dispose(); this.assets.dispose(); this.renderer.dispose(); this.renderer.domElement.remove();
   }
 }

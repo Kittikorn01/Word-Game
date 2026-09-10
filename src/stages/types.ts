@@ -4,7 +4,7 @@ export interface StageDefinition {
   grid: { columns: number; rows: number; tileSize: number };
   letterLayout?: readonly string[];
   vocabulary?: readonly string[];
-  spawn: Position;
+  playerStart: { row: number; column: number };
   decorations: readonly (Position & { kind: 'tree' | 'rock'; scale: number })[];
 }
 // Grid centers map to world X/Z; +row is +Z, Y is height. One unit = one tile.

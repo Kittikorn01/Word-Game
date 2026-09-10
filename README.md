@@ -1,42 +1,99 @@
-﻿# Word Search Adventure — Prompt 1
+﻿# Word Search Adventure - Prompt 2.1
 
-Continues the existing Three.js + TypeScript + Vite foundation. No dependencies added, no Git commands used. The 7 × 7 island, orthographic camera, lighting, decoration and continuous WASD/arrow movement retain their original settings.
+Refines the existing Three.js + TypeScript + Vite project. No dependencies added, no Git commands, no scene redesign. No word validation, quests, hints, scan or world reactions.
 
 ## Run
 
-From this folder, with dependencies already installed:
-
 ```powershell
 npm.cmd run dev
-```
-
-Open the URL printed by Vite (normally http://127.0.0.1:5173). For a fresh dependency installation use `npm.cmd ci`. Node 22.18+ / Node 24 and a WebGL 2 browser are required.
-
-```powershell
 npm.cmd test
 npm.cmd run build
-npm.cmd run preview
 ```
 
-## Architecture
+Open the URL printed by Vite (normally http://127.0.0.1:5173). Requires a desktop keyboard/mouse and WebGL 2 browser.
 
-GameApp composes stage data → LetterGrid and keyboard → movement simulation, then presents state through GameView. Simulation remains at 60 Hz. Grid modules import no Three.js or DOM APIs.
+## Movement and input contract
 
-- `src/stages/stage1.ts`: deterministic layout and vocabulary, reusing prototype dimensions/spawn/decorations.
-- `src/grid/types.ts`: Tile ID, row, column, uppercase letter, logical world center and state contracts.
-- `src/grid/LetterGrid.ts`: creation/validation, ID and coordinate lookup, cardinal adjacency, world mapping, selection state and feedback timer.
-- `src/render/LetterGridView.ts`: data-generated tile bodies, cached CanvasTexture letters, lift/color/pulse animation and raycasting adapter. Shared letter textures are disposed on teardown. Fixed picking proxies keep hover stable while tiles lift; only these proxies are raycast, so decoration and lettering cannot block input.
-- `src/input/TilePointerInput.ts`: pointer coordinates → picked ID → hovered ID; clears on leave/cancel/blur/visibility change and refreshes after resize.
-- `src/debug/TileDebugControls.ts`: temporary click/C/R input binding, isolated from movement and future word selection.
-- `tests/grid.test.mjs`: test-only DFS proves solvability; adjacency, state and mapping checks.
+- One fresh W/A/S/D or arrow keydown requests one cardinal tile. Holding does not repeat: release and press again.
+- First received keydown wins. Commands received during a step are discarded, without a queue. Simultaneous keys can never produce diagonal motion.
+- A step takes approximately 0.18 seconds, with smoothstep interpolation between tile centers. Simulation runs at 60 Hz. No velocity integration, diagonal normalization or floating-point gameplay position remains.
+- Out-of-board commands do nothing. Every finished step ends at the exact target tile center.
+- `player.currentTile` is the authoritative committed row/column; `targetTile` is the pending destination. Current tile stays at the source during animation and changes once on arrival.
+- Stage data now has `playerStart: { row: 4, column: 3 }`, preserving the former spawn center (0,1). Change row/column in stage data to change spawn. Invalid coordinates fail early.
+- Mouse down anywhere on the canvas starts from the committed current tile, regardless of pointer position. DOM UI blocks starts; tile raycasting remains only for hover.
+- Pressing mouse during a step starts with its source tile. Releasing during a step submits only the letters already reached; movement still finishes and cannot add a letter after submission.
+- Blur/visibility/capture cancellation clears selection. Hidden-tab/context-loss animation pauses and resumes its pending step on return; it does not discard or compound the destination. No new movement/selection starts during context loss.
 
-Tile state is NORMAL / SELECTED / CORRECT. Hover is separate (`grid.hoveredTileId`), so pointer exit cannot discard selection. Effective visual priority is CORRECT > SELECTED > HOVER > NORMAL. CORRECT lasts 0.9 seconds, then returns to NORMAL (or HOVER if the pointer is still there). Rendering reads state without writing gameplay data.
+## Data flow
 
-Grid coordinates are zero-based. +column = +X, +row = +Z, Y is height. Existing `gridToWorld(column, row, grid)` remains the forward mapping. `grid.worldToGrid({x,z})` and `grid.tileAtWorld(state.player)` perform inverse lookup. Cell boundaries are half-open: minimum included, maximum excluded; small visual gaps belong to the logical cell. Logical world positions stay fixed during animation. Player movement is still continuous and is not elevated by feedback tiles.
+KeyboardInput -> requestMovement -> currentTile/targetTile/elapsed -> GameView derives interpolated world position.
 
-## Stage 1 proof
+Mouse hold on canvas -> WordSelection.start(currentPlayerTile).
 
-Rows run from the back of the scene to the front:
+Movement arrival -> PlayerTileTracker reads committed row/column -> existing WordSelection adjacency/backtrack/reuse rules -> tile renderer / connection path / current-word HUD.
+
+FloatingLetterView reads the committed tile letter and follows the rendered player position. Its camera-facing Sprite has a small warm backing plate above the hat. During transit it keeps the source letter, then changes on arrival. It shows one letter (where the player is), while the existing top-center HUD shows the complete selected word.
+
+## Files
+
+New:
+- `src/render/FloatingLetterView.ts`: billboard canvas texture, backing plate, current-letter updates and resource disposal.
+
+Modified:
+- `src/simulation/types.ts`: coordinate-based player state.
+- `src/simulation/update.ts`: validated spawn, cardinal step request, input lock and arrival commit; replaces free-motion speed/radius/velocity and boundary-clamp logic.
+- `src/input/KeyboardInput.ts`: keydown commands instead of continuously reading held axes; ignores repeats.
+- `src/simulation/PlayerTileTracker.ts`: committed grid lookup instead of per-frame world-to-grid detection.
+- `src/stages/types.ts`, `src/stages/prototype.ts`: data-driven playerStart replaces world-coordinate spawn; Stage 1 inherits it.
+- `src/selection/WordSelection.ts`: start accepts current tile only; path/backtracking/reuse/submit unchanged.
+- `src/input/WordSelectionInput.ts`: start callback no longer receives pointer coordinates; capture/release/cancel safety retained.
+- `src/app/GameApp.ts`: connects grid movement, current-tile selection and lifecycle.
+- `src/render/GameView.ts`: derives render position from coordinates/step progress, adds/disposes floating letter.
+- `src/ui/createOverlay.ts`: English instructions for tap-to-step and canvas hold.
+- `tests/movement.test.mjs`: replaces obsolete free-movement expectations with grid/input/integration checks.
+- `tests/selection.test.mjs`: updated start/tracker contract; existing rule/safety coverage retained.
+- `README.md`; generated `dist/` output.
+
+No files deleted in this refinement. The removed Prompt 1 click/C/R debug interaction stays removed. Grid, hover, selected visuals, connection path, camera, lighting and decoration retain their existing implementation.
+
+## Submission boundary / placeholder
+
+`startGame(host, stage, onWordSubmitted)` retains the optional callback and frozen snapshot:
+
+```js
+{
+  word: 'KEY',
+  selectedTileIds: ['stage-1-letter-clearing:0:0', 'stage-1-letter-clearing:0:1', 'stage-1-letter-clearing:0:2'],
+  path: [
+    { id: 'stage-1-letter-clearing:0:0', letter: 'K', row: 0, column: 0 },
+    { id: 'stage-1-letter-clearing:0:1', letter: 'E', row: 0, column: 1 },
+    { id: 'stage-1-letter-clearing:0:2', letter: 'Y', row: 0, column: 2 }
+  ]
+}
+```
+
+Release clears selection and shows neutral `Submitted: KEY` for 1.8 seconds. No correct/wrong state is triggered. This neutral feedback and callback remain the future validation integration point; Prompt 3 is not implemented.
+
+## Manual tests
+
+From original spawn (4,3), tap Up four times and Left three times, waiting for each step, to reach K at (0,0). E/Y are (0,1)/(0,2). Use fresh presses for each step.
+
+| Test | Actions | Expected |
+| --- | --- | --- |
+| 1 One step | At K, press Right once | Animate to E, stop at center; no further movement |
+| 2 Hold | Hold Right through and after a step | Exactly one step; release/repress for another |
+| 3 No diagonal | From an interior tile press W and D together | First received direction only; next input during animation discarded |
+| 4 Boundary | At K press Up or Left; repeat at other edges | Remain at same center, letter and selection unchanged |
+| 5 Auto start | At K aim at empty canvas ground, hold left mouse | Select K immediately without aiming at K |
+| 6 Build KEY | Hold mouse; tap Right, wait; tap Right, wait | UI K -> KE -> KEY, selected K/E/Y and two path segments |
+| 7 Backtrack | While holding at Y, tap Left, wait | Return E, remove Y/latest segment; word KE |
+| 8 Floating letter | Walk K -> E -> Y without selection | Marker above head changes K -> E -> Y on arrival and faces camera |
+| 9 Separate roles | Build KEY and remain holding at Y | Top HUD KEY; above-head marker Y |
+| 10 UI click | Hold on scene label, controls or word HUD | No new selection; then a fresh canvas press starts normally |
+| 11 Submit | Build KEY, release left mouse | One KEY submission, temporary Submitted: KEY, no judgment |
+| 12 Stability | Rapid/multiple presses; hold/release mouse midway; blur/switch tabs; release outside canvas | No diagonal, extra queued steps, out-of-grid position or permanent mid-tile stop; release uses committed path, cancellation clears; inspect console |
+
+Also check hover priority while selecting, repeated backtracks, non-previous tile reuse, and wide/square/narrow rendering. Preserve the Stage 1 board:
 
 ```text
 KEYAMXZ
@@ -48,40 +105,8 @@ TOPENEF
 QILFEOQ
 ```
 
-Example paths, inclusive endpoints `(row,column)`:
+## Verification / limitations
 
-| Word | Path |
-| --- | --- |
-| KEY | (0,0) → (0,1) → (0,2) |
-| LIGHT | (1,1) → (1,2) → (1,3) → (1,4) → (1,5) |
-| WATER | (2,0) → (2,1) → (2,2) → (2,3) → (2,4) |
-| BOOK | (3,1) → (3,2) → (3,3) → (3,4) |
-| DOOR | (4,0) → (4,1) → (4,2) → (4,3) |
-| OPEN | (5,1) → (5,2) → (5,3) → (5,4) |
+19/19 automated tests pass, including grid data, cardinal movement, input lock/repeat suppression, boundaries, KEY/backtracking, mid-animation start/release and pointer safety. TypeScript and production build pass. The existing Vite large-chunk warning remains (about 561 kB minified / 142 kB gzip).
 
-`npm.cmd test` independently searches the actual board, prints one valid path per word and disallows diagonal steps and tile reuse. It may find a different valid path. There is no runtime word validator.
-
-## Manual visual/input check
-
-1. Open the scene: 49 cream tiles with centered dark uppercase letters (NORMAL). Check I/L/E/F/O/Q on the front row.
-2. Move the pointer over a tile: brighter cream and small lift (HOVER). Move off the board: normal again.
-3. Click: warm amber and a higher lift (SELECTED). Leave the tile: selection persists. Click again: selection clears. Select multiple independent tiles if desired.
-4. Press C: selected tiles turn soft green, rise and pulse, then settle after 0.9 seconds. This is only a debug trigger, not a correct-answer check.
-5. Press R: all selection/feedback clears. A tile still under the pointer resumes hover.
-6. Walk using both WASD and arrows, diagonals/opposing directions, all edges and blur/refocus. Camera and environment should remain unchanged.
-7. Resize wide/square/narrow; check board framing and hint overlap. Small portrait viewports naturally make letters smaller; keyboard remains necessary for movement.
-8. Check browser developer console for errors and test context loss/restoration if desired.
-
-## Validation and limitations
-
-Automated tests: 15/15 passed, including all existing movement checks. TypeScript and production build passed. Vite reports a bundle-size warning (approximately 548 kB minified / 139 kB gzip); this is not a build failure.
-
-Visual screenshots, actual mouse/keyboard browser playtest and browser-console verification remain pending: the connected browser tool reports `No browser is available`. Build/test success is not proof of visual quality or an error-free browser console.
-
-The click/C/R binding and small debug hint are temporary and should be removed/replaced in Prompt 2. No hold/drag selection, selection path, connecting lines, word UI, runtime word validation, quests, world reactions or progression were added. Lettering uses system bold Courier New/monospace, with no font download. Player and decorations intentionally do not block tile picking; player geometry can visually cover a letter as it walks across the board.
-
-## File changes
-
-New: `src/stages/stage1.ts`, `src/grid/types.ts`, `src/grid/LetterGrid.ts`, `src/render/LetterGridView.ts`, `src/input/TilePointerInput.ts`, `src/debug/TileDebugControls.ts`, `tests/grid.test.mjs`.
-
-Modified: `src/stages/types.ts`, `src/simulation/types.ts`, `src/render/createDiorama.ts`, `src/render/GameView.ts`, `src/app/GameApp.ts`, `src/main.ts`, `src/ui/createOverlay.ts`, `src/ui/styles.css`, `README.md`. Build output in `dist/` is regenerated by Vite.
+Connected-browser inventory again returned no browsers. Actual browser playtest, console verification, responsive visual QA and floating-letter/path screenshots remain unverified; the manual cases above are needed. EventTarget input tests do not establish browser-native pointer-capture behavior. No touch/mobile controls added. Fast presses during a step are intentionally discarded rather than buffered.

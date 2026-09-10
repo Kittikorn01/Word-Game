@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { LetterGrid, areAdjacent, CORRECT_DURATION } from '../src/grid/LetterGrid.ts';
 import { stage1 } from '../src/stages/stage1.ts';
 const create = () => new LetterGrid(stage1.id, stage1.grid, stage1.letterLayout);
-// Test-only DFS: runtime intentionally has no word validation or selection path.
+// Test-only DFS: runtime intentionally has no word validation.
 function findPath(grid, word, path = []) {
   if (path.length === word.length) return path;
   for (const tile of grid.tiles) {

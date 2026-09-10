@@ -8,22 +8,19 @@ const bindings: Record<string, MoveAction> = {
 export class KeyboardInput {
   private pressed = new Set<string>();
   private abort = new AbortController();
-  constructor() {
+  constructor(onMove: (action: MoveAction) => void) {
     const options = { signal: this.abort.signal };
     window.addEventListener('keydown', event => {
       if (event.target instanceof HTMLElement && event.target.closest('input,textarea,select,[contenteditable="true"]')) return;
-      if (bindings[event.code]) { event.preventDefault(); this.pressed.add(event.code); }
+      if (bindings[event.code]) {
+        event.preventDefault();
+        if (event.repeat || this.pressed.has(event.code)) return;
+        this.pressed.add(event.code); onMove(bindings[event.code]);
+      }
     }, options);
     window.addEventListener('keyup', event => this.pressed.delete(event.code), options);
     window.addEventListener('blur', () => this.clear(), options);
     document.addEventListener('visibilitychange', () => this.clear(), options);
-  }
-  read(): MoveAction {
-    const active = [...this.pressed].map(key => bindings[key]);
-    return {
-      x: Number(active.some(a => a.x === 1)) - Number(active.some(a => a.x === -1)),
-      z: Number(active.some(a => a.z === 1)) - Number(active.some(a => a.z === -1))
-    };
   }
   clear(): void { this.pressed.clear(); }
   dispose(): void { this.abort.abort(); this.clear(); }

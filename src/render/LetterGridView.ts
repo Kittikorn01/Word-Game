@@ -26,6 +26,7 @@ export class LetterGridView {
       const letter = new THREE.Mesh(this.plane, this.letterMaterial(tile.letter));
       letter.rotation.x = -Math.PI / 2;
       letter.position.y = 0.108; letter.scale.setScalar(size * 0.83);
+      letter.renderOrder = 2;
       root.add(body, letter); this.root.add(root);
       // Fixed logical footprint prevents hover flicker when a tile lifts beneath a stationary pointer.
       const hitTarget = new THREE.Mesh(assets.geometry.box, material);
@@ -49,10 +50,10 @@ export class LetterGridView {
     const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false, toneMapped: false });
     this.letters.set(letter, material); return material;
   }
-  update(dt: number): void {
+  update(dt: number, selectedIds: ReadonlySet<string> = new Set()): void {
     const blend = 1 - Math.exp(-24 * dt);
     this.grid.tiles.forEach((tile, index) => {
-      const entry = this.entries[index], state = this.grid.visualState(tile);
+      const entry = this.entries[index], state = selectedIds.has(tile.id) ? 'SELECTED' : this.grid.visualState(tile);
       const progress = 1 - tile.correctRemaining / CORRECT_DURATION;
       const pulse = state === 'CORRECT' ? Math.sin(Math.PI * progress) ** 2 : 0;
       const lift = state === 'CORRECT' ? 0.13 + pulse * 0.15 : state === 'SELECTED' ? 0.13 : state === 'HOVER' ? 0.055 : 0;
