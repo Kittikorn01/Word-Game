@@ -1,13 +1,15 @@
 import type { GameState, MoveAction } from './types.ts';
 import { createWordProgress } from './WordProgress.ts';
+import { createQuestProgress } from './QuestProgress.ts';
+import type { QuestDefinition } from '../quests/types.ts';
 import type { GridCoordinate, GridDefinition } from '../grid/types.ts';
 
 export const STEP_DURATION = 0.18;
-export function createGameState(start: GridCoordinate, grid: GridDefinition): GameState {
+export function createGameState(start: GridCoordinate, grid: GridDefinition, quests: readonly QuestDefinition[] = []): GameState {
   if (!Number.isInteger(start.row) || !Number.isInteger(start.column) || start.row < 0 || start.column < 0 || start.row >= grid.rows || start.column >= grid.columns) {
     throw new Error('Player start must be a valid grid coordinate.');
   }
-  return { words: createWordProgress(), player: { currentTile: { ...start }, targetTile: null, elapsed: 0, heading: 0 } };
+  return { words: createWordProgress(), quests: createQuestProgress(quests), player: { currentTile: { ...start }, targetTile: null, elapsed: 0, heading: 0 } };
 }
 /** First keydown wins; commands during an active step are discarded. */
 export function requestMovement(state: GameState, action: MoveAction, grid: GridDefinition): boolean {

@@ -4,12 +4,10 @@ html, body, #app { margin: 0; width: 100%; height: 100%; overflow: hidden; }
 #app { position: relative; }
 canvas { display: block; width: 100%; height: 100%; }
 .overlay { position: absolute; inset: 0; pointer-events: none; }
-.scene-label { position: absolute; top: 25px; left: 28px; font-size: 11px; font-weight: 650; letter-spacing: 0.18em; }
-.scene-label span { display: block; margin-top: 6px; font-size: 12px; font-weight: 400; letter-spacing: 0.02em; opacity: 0.75; }
 .controls { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; white-space: nowrap; font-size: 12px; padding: 10px 16px; border: 1px solid #ffffff80; border-radius: 25px; background: #f7f5e8d9; }
 kbd { font: inherit; font-weight: 600; letter-spacing: 0.08em; }
 .notice { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: 420px; width: calc(100% - 40px); padding: 18px; background: #fff9ec; border-radius: 12px; text-align: center; }
-@media (max-width: 600px) { .scene-label { top: 16px; left: 16px; } .controls { bottom: 12px; font-size: 11px; gap: 7px; } }
+@media (max-width: 600px) { .controls { bottom: 12px; font-size: 11px; gap: 7px; } }
 /* Visible UI blocks selection starts; empty overlay space stays transparent. */
 .overlay > * { pointer-events: auto; }
 .selection-hint { position: absolute; bottom: 3px; width: 100%; margin: 0; text-align: center; font-size: 10px; }
@@ -27,4 +25,35 @@ kbd { font: inherit; font-weight: 600; letter-spacing: 0.08em; }
   .word-selection[data-tone]:not([data-tone='']) .word-selection__word { font-size: 22px; }
   .selection-hint { padding: 0 10px; font-size: 9px; }
   .controls { bottom: 28px; }
+}
+/* A single warm quest cluster; DOM hit-testing keeps clicks off the canvas. */
+:root { --quest-paper: #faf4e6; --quest-ink: #394b3e; --quest-muted: #687263; --quest-success: #2c6343; --quest-border: #d7d9c7; --quest-focus: #eee3cb; --quest-focus-border: #b5a17b; }
+.quest-hud { position: absolute; top: 20px; left: 20px; width: 280px; max-width: calc(100vw - 32px); padding: 14px 16px 10px; color: var(--quest-ink); background: var(--quest-paper); border: 1px solid var(--quest-border); border-radius: 14px; box-shadow: 0 3px 12px #34483712; pointer-events: auto; }
+.quest-hud__heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 10px; }
+.quest-hud__heading strong { letter-spacing: .14em; }
+.quest-hud__progress { color: var(--quest-muted); }
+.quest-hud__list { list-style: none; padding: 2px; margin: 10px -2px; max-height: min(202px, calc(100dvh - 230px)); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.quest-hud__list li + li { margin-top: 2px; }
+.quest-hud__row { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 31px; padding: 5px 7px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--quest-ink); font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
+.quest-hud__mark { flex: 0 0 14px; text-align: center; font-size: 14px; }
+.quest-hud__summary { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.quest-hud__row:hover { background: #f1eada; }
+.quest-hud__row[aria-pressed='true'] { background: var(--quest-focus); border-color: var(--quest-focus-border); }
+.quest-hud__row[data-completed='true'] { color: var(--quest-success); }
+.quest-hud__row[data-completed='true'] .quest-hud__mark { font-weight: 750; }
+.quest-hud__row:focus-visible { outline: 2px solid var(--quest-focus-border); outline-offset: 0; }
+.quest-hud__content { border-top: 1px solid var(--quest-border); padding-top: 9px; }
+.quest-hud__clue { margin: 0 0 3px; font-size: 13px; line-height: 1.45; overflow-wrap: break-word; }
+@media (min-width: 601px) and (max-width: 1100px) {
+  .word-selection, .word-selection[data-tone]:not([data-tone='']) { left: auto; right: 20px; transform: none; max-width: calc(100vw - 340px); }
+}
+@media (max-width: 600px) {
+  .quest-hud { top: 12px; left: 16px; width: 260px; padding: 10px 12px 6px; }
+  .quest-hud__clue { font-size: 12px; }
+  .quest-hud__list { margin-top: 7px; margin-bottom: 7px; }
+  .word-selection { top: auto; bottom: 100px; }
+}
+@media (max-height: 480px) and (min-width: 601px) {
+  .quest-hud { top: 10px; left: 12px; width: 235px; padding: 8px 12px; }
+  .quest-hud__clue { font-size: 12px; }
 }

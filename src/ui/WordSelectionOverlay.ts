@@ -7,7 +7,7 @@ const presentation: Record<WordStatus, { tone: string; label: string; seconds: n
   WRONG: { tone: 'wrong', label: "That word isn't needed here.", seconds: 2.8 }
 };
 
-export function createWordSelectionOverlay(host: HTMLElement) {
+export function createWordSelectionOverlay(host: HTMLElement, onFeedbackFinished: () => void = () => {}) {
   const element = document.createElement('div');
   element.className = 'word-selection'; element.hidden = true;
   element.setAttribute('role', 'status'); element.setAttribute('aria-atomic', 'true');
@@ -15,9 +15,14 @@ export function createWordSelectionOverlay(host: HTMLElement) {
   const status = document.createElement('div'); status.className = 'word-selection__status';
   status.hidden = true; element.append(word, status); host.append(element);
   let remaining = 0;
-  const clear = () => { remaining = 0; element.hidden = true; };
+  const clear = () => {
+    const wasShowing = remaining > 0;
+    remaining = 0; element.hidden = true;
+    if (wasShowing) onFeedbackFinished();
+  };
   return {
     show(result: WordResult) {
+      clear();
       const style = presentation[result.status];
       word.textContent = result.word; status.textContent = style.label;
       status.hidden = false; element.dataset.tone = style.tone;
@@ -26,12 +31,14 @@ export function createWordSelectionOverlay(host: HTMLElement) {
     update(selection: WordSelection, dt: number) {
       // A fresh selection takes priority over the previous result in this shared HUD.
       if (selection.isSelecting) {
-        remaining = 0; status.hidden = true; element.dataset.tone = '';
+        clear(); status.hidden = true; element.dataset.tone = '';
         if (word.textContent !== selection.currentWord) word.textContent = selection.currentWord;
         element.hidden = !selection.currentWord;
         return;
       }
-      if (Number.isFinite(dt) && dt > 0) remaining = Math.max(0, remaining - dt);
+      if (Number.isFinite(dt) && dt > 0 && remaining > 0) {
+        if (dt >= remaining) clear(); else remaining -= dt;
+      }
       element.hidden = remaining <= 0;
     },
     clear,

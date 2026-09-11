@@ -1,9 +1,11 @@
 import type { MovementBounds, Position } from '../simulation/types.ts';
+import type { QuestDefinition } from '../quests/types.ts';
 export interface StageDefinition {
   id: string;
   grid: { columns: number; rows: number; tileSize: number };
   letterLayout?: readonly string[];
   vocabulary?: readonly string[];
+  quests?: readonly QuestDefinition[];
   playerStart: { row: number; column: number };
   decorations: readonly (Position & { kind: 'tree' | 'rock'; scale: number })[];
 }

@@ -9,29 +9,42 @@ import { WordSelection, type WordSubmission } from '../selection/WordSelection.t
 import { PlayerTileTracker } from '../simulation/PlayerTileTracker.ts';
 import { WordSelectionInput } from '../input/WordSelectionInput.ts';
 import { createWordSelectionOverlay } from '../ui/WordSelectionOverlay.ts';
-import { createStageWordValidator } from '../validation/WordValidator.ts';
-import { resolveWord } from '../simulation/WordProgress.ts';
+import { createQuestValidator } from '../validation/QuestValidator.ts';
+import { createQuestOverlay } from '../ui/QuestOverlay.ts';
+import { finishQuestFeedback, resolveQuestWord } from '../simulation/QuestProgress.ts';
 import { WordFeedback } from '../feedback/WordFeedback.ts';
 
-export function startGame(host: HTMLElement, stage: StageDefinition, onWordSubmitted: (submission: WordSubmission) => void = () => {}): () => void {
+export function startGame(host: HTMLElement, stage: StageDefinition, onWordSubmitted: (submission: WordSubmission) => void = () => {}, onQuestCompleted: (questId: string) => void = () => {}): () => void {
   const ui = createOverlay(host);
   const grid = new LetterGrid(stage.id, stage.grid, stage.letterLayout ?? []);
   let view: GameView;
   try { view = new GameView(host, stage, grid); }
   catch (error) { console.error(error); ui.message('This scene needs WebGL 2. Please enable hardware acceleration or try another browser.'); return () => ui.dispose(); }
-  const state = createGameState(stage.playerStart, stage.grid);
+  const state = createGameState(stage.playerStart, stage.grid, stage.quests);
   const input = new KeyboardInput(action => {
     if (!lost && !document.hidden) requestMovement(state, action, stage.grid);
   });
   const pointer = new TilePointerInput(view.renderer.domElement, view.pickTile, id => grid.setHovered(id));
-  const wordUI = createWordSelectionOverlay(host);
-  const validate = createStageWordValidator(stage.vocabulary ?? []);
+  const questUI = createQuestOverlay(host, index => {
+    if (!state.quests.definitions[index]) return;
+    state.quests.focusedIndex = index;
+    state.quests.pendingAdvanceId = null;
+    questUI.render(state.quests, state.words);
+  });
+  questUI.render(state.quests, state.words);
+  const wordUI = createWordSelectionOverlay(host, () => {
+    finishQuestFeedback(state.quests, state.words); questUI.render(state.quests, state.words);
+  });
+  const validate = createQuestValidator(state.quests.definitions);
   const feedback = new WordFeedback(grid);
   const selection = new WordSelection(grid, submission => {
     if (feedback.isResolving) return;
-    const result = resolveWord(state.words, submission, validate);
+    // Finish any older visible feedback before queuing this submission's advance.
+    wordUI.clear();
+    const result = resolveQuestWord(state.quests, state.words, submission, validate, onQuestCompleted);
     feedback.begin(result);
     wordUI.show(result);
+    questUI.render(state.quests, state.words);
     onWordSubmitted(submission);
   });
   const tracker = new PlayerTileTracker(grid); tracker.update(state.player.currentTile);
@@ -66,6 +79,6 @@ export function startGame(host: HTMLElement, stage: StageDefinition, onWordSubmi
     wordUI.update(selection, dt);
     view.render(state, dt, feedback.isResolving ? feedback.selectedTiles : selection.selectedTiles, feedback.visual);
   });
-  return () => { view.renderer.setAnimationLoop(null); abort.abort(); selectionInput.dispose(); wordUI.dispose(); pointer.dispose(); input.dispose(); view.dispose(); ui.dispose(); };
+  return () => { view.renderer.setAnimationLoop(null); abort.abort(); selectionInput.dispose(); wordUI.dispose(); questUI.dispose(); pointer.dispose(); input.dispose(); view.dispose(); ui.dispose(); };
 }
 

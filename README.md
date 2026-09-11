@@ -1,6 +1,6 @@
-# Word Search Adventure - Prompt 3
+# Word Search Adventure — Prompt 4
 
-Continues the existing Three.js + TypeScript + Vite runtime with stage word validation. No new dependencies. No dictionary/API, quests, world reactions, stage completion or persistence.
+Continues the existing Three.js + TypeScript + Vite architecture. No new dependencies, world reactions, stage transitions, save system or target-list HUD.
 
 ## Run
 
@@ -10,76 +10,85 @@ npm.cmd test
 npm.cmd run build
 ```
 
-Open the Vite URL (normally http://127.0.0.1:5173) using a desktop keyboard/mouse and WebGL 2 browser.
+Open the URL printed by Vite, normally http://127.0.0.1:5173. Use a desktop keyboard/mouse and a WebGL 2 browser.
 
-## Validation flow
+## Quest data and state
 
-Movement arrival -> WordSelection builds a path -> mouse release creates a frozen WordSubmission -> stage WordValidator -> resolveWord updates gameplay state -> WordFeedback -> tile/path renderers and DOM overlay.
+`src/stages/stage1.ts` defines six quests with stable `id`, English `clue`, and logic-only `targetWord`. All are initially available. The original vocabulary remains for existing board/validation regression tests; runtime validation now uses quest definitions exclusively.
 
-Stage 1 vocabulary remains the source of truth in src/stages/stage1.ts. The pure validator normalizes submissions, vocabulary and completed words with trim/uppercase. It returns CORRECT, WRONG or ALREADY_COMPLETED plus normalized word and selectedTileIds. Selection and renderer contain no target vocabulary or validation rules.
+`GameState.quests` owns immutable definition snapshots, focusedIndex and pendingAdvanceId. `GameState.words.completedWords` remains the canonical completion ledger. `questStatus` derives AVAILABLE or COMPLETED from that ledger, avoiding independently mutable status flags. The UI only renders state and dispatches navigation intent. No targets or quest ids are rendered in text, data attributes, tooltips or accessibility labels.
 
-GameState.words.completedWords is an initially empty, readonly array snapshot. resolveWord replaces it only on a new correct word. It survives feedback cleanup and focus/context interruption, but resets when the runtime restarts or the page reloads. No completed state is attached permanently to tiles.
+Submit -> QuestValidator checks every quest target -> resolveQuestWord / resolveWord commit completedWords -> onQuestCompleted(questId) -> existing feedback -> Quest HUD render.
 
-WordSelection retains its original submit-and-clear contract. WordFeedback retains the submitted tile snapshot for presentation, keeping the visible path and word until resolution ends. GameApp blocks fresh selection starts while feedback resolves. Timings: correct 0.9 seconds, wrong 1.1 seconds, already found 0.75 seconds. No timer callbacks overlap. Movement remains available and pending steps still finish; releasing mid-step submits only committed tiles, as before.
+Focused quest means the clue being viewed, not the only answer accepted. Any available quest can complete, including WATER while viewing the first clue. A completed target returns ALREADY_COMPLETED; a non-target returns WRONG. Normalization remains trim/uppercase. Selection knows nothing about quests.
 
-Correct uses the existing tile CORRECT pulse/lift with warm glow and a brighter path. Wrong uses a soft color shift and fading path, without penalty. Already found uses a subtle highlight. At completion all affected tile state/timers, path and current-word UI clear; normal hover can still apply. Player position and floating letter are preserved. Blur, hidden tab and context loss clear transient feedback without undoing completed words.
+The compact cream HUD replaces the former scene label at top left. Previous/Next wrap across all six clues, including completed ones. Progress is secondary text; completed clues have a green check. No temporary Found/target-list HUD existed to remove. Existing word-building and submitted-word feedback remain allowed.
 
-The former UI-owned `Submitted: WORD` message and 1.8-second timer have been replaced. There is no temporary development HUD or global debug hook. The optional startGame onWordSubmitted callback remains a submission observer.
+When focused completion feedback expires (2.3 seconds for the word HUD), focus advances to the next available quest, skipping completed ones. Scene feedback retains its original shorter timing. Starting a new selection or clearing feedback on blur/context interruption also settles pending advancement. Manual quest navigation cancels pending auto-advance. Completing a non-focused quest does not move focus. Finishing all six leaves the last viewed clue and 6 / 6 progress without stage-complete logic.
 
-## Future policy boundary
+## Input and next-prompt boundary
 
-createStageWordValidator(stage.vocabulary) in GameApp is the current policy. A future active-quest validator can implement the same WordValidator signature and be supplied here without changing WordSelection. No quest implementation or placeholder quest data is included.
+Quest HUD and buttons are DOM siblings of the canvas. Pointer hit-testing targets the HUD, while WordSelectionInput only starts on canvas pointerdown. No movement bindings were changed; navigation uses buttons, also accessible through Tab and Enter/Space. Empty space outside the HUD remains playable.
 
-## Files
+`startGame(host, stage, onWordSubmitted?, onQuestCompleted?)` exposes a completion observer. `resolveQuestWord` calls it exactly once after a new quest completion has committed. Wrong/duplicate words emit nothing. The default callback does nothing and no scene reaction is attached. Future world reactions can subscribe here; there is no spawning, lighting change, door interaction or plant watering in this prompt.
+
+## Changed files
 
 New:
-- src/validation/WordValidator.ts
-- src/simulation/WordProgress.ts
-- src/feedback/WordFeedback.ts
-- tests/validation.test.mjs
+- src/quests/types.ts
+- src/simulation/QuestProgress.ts
+- src/validation/QuestValidator.ts
+- src/ui/QuestOverlay.ts
+- tests/quests.test.mjs
 
 Modified:
-- src/app/GameApp.ts
+- src/stages/types.ts
+- src/stages/stage1.ts
 - src/simulation/types.ts
 - src/simulation/update.ts
-- src/render/GameView.ts
-- src/render/LetterGridView.ts
-- src/render/SelectionPathView.ts
+- src/app/GameApp.ts
+- src/ui/createOverlay.ts
 - src/ui/WordSelectionOverlay.ts
 - src/ui/styles.css
 - README.md
-- dist/ (regenerated by production build)
+- dist/ regenerated by production build
 
-Stage data, selection rules, input adapters, grid layout, camera, environment and floating-letter implementation are unchanged.
+Selection, movement/input adapters, grid letters, renderers, camera, environment, lighting and floating letter code are unchanged.
 
-## Manual verification
+## Manual tests — all 12 acceptance cases
 
-Coordinates below are zero-based (row,column). Spawn is (4,3). Tap Up four times then Left three times to reach KEY's K, waiting for each move to finish. Each fresh WASD/arrow press moves one cardinal tile; held keys do not repeat.
+Reload between tests when a fresh progress state is needed. Coordinates are zero-based (row, column); spawn is (4,3). Walk to the start without holding mouse. Hold left mouse on unobstructed canvas, tap Right once per tile and wait for each arrival, then release to submit.
 
-For every row below, walk to the start without holding the mouse, then hold left mouse on empty canvas and tap Right the specified number of times, waiting for each arrival. Release at the final tile.
+| Word | Start | Right taps |
+| --- | --- | --- |
+| KEY | (0,0) | 2 |
+| LIGHT | (1,1) | 4 |
+| WATER | (2,0) | 4 |
+| BOOK | (3,1) | 3 |
+| DOOR | (4,0) | 3 |
+| OPEN | (5,1) | 3 |
 
-| Word | Start | Right taps | End |
-| --- | --- | --- | --- |
-| KEY | (0,0) | 2 | (0,2) |
-| LIGHT | (1,1) | 4 | (1,5) |
-| WATER | (2,0) | 4 | (2,4) |
-| BOOK | (3,1) | 3 | (3,4) |
-| DOOR | (4,0) | 3 | (4,3) |
-| OPEN | (5,1) | 3 | (5,4) |
+These routes are developer test instructions only, never runtime answer hints.
 
-- CORRECT: Each first submission shows WORD FOUND, warm tile pulse and brighter path; selection clears after 0.9 seconds. Player remains on the last tile unless moved. Test KEY then BOOK to accumulate both words.
-- WRONG: Build KE and release. Expect `KE · That word isn't needed here.`, gentle tile color and path fade. No progress loss or player reset.
-- ALREADY_COMPLETED: Walk back to K and build KEY again. Expect `KEY · Already found.`, lighter feedback, no full correct pulse. Repeating must never add progress twice.
-- Letters remain: After KEY, select and walk over K/E/Y again. All original letters remain reusable.
-- Backtracking: Hold through K -> E -> Y -> E. UI reads KE and no validation occurs until release.
-- Fast input: Repeatedly press/release mouse during resolving. No new selection/overlapping feedback occurs. After feedback a fresh press must work. Try release outside canvas, blur, tab switching and release mid-step.
-- Regression: Check one press/one tile, no diagonal, hover, floating letter on each arrival, camera, lighting and wide/narrow layouts. Inspect browser console.
-- Gameplay state: No progress HUD was added. For manual state inspection, place a debugger breakpoint after feedback.begin in GameApp and inspect state.words.completedWords. Automated tests also assert all six completed words and duplicate rejection.
+1. **Quest HUD:** Reload. Check a small cream panel at top left with the locked-door clue, 1 / 6 navigation and 0 / 6 completed. No answer label. Check desktop and narrow viewport wrapping and unobstructed center.
+2. **Navigation:** Click Next six times and Previous once. All six English clues are reachable and wrap. Tap movement keys with a navigation button focused; movement still works one tile per press.
+3. **Non-focused answer:** Reload and leave the first clue visible. Build WATER using its route. Expect WORD FOUND, 1 / 6 completed, first clue still focused. Navigate to clue 3 and see Completed.
+4. **Completion:** Reload, build KEY. Expect existing correct pulse/path and WORD FOUND, green Completed and 1 / 6 progress immediately.
+5. **Auto advance:** After test 4, wait for the word feedback to disappear. Expect clue 2. Also complete LIGHT before KEY and check auto-advance skips LIGHT. Manually navigate during feedback and confirm it does not override your choice.
+6. **Wrong:** Build KE (start at (0,0), Right once). Expect That word isn't needed here. in red. Progress, quest focus and player position must not reset.
+7. **Already found:** Complete KEY, return to its start and build it again. Expect amber Already found. and unchanged 1 / 6 progress.
+8. **Completed view:** After completing KEY, use Previous/Next to return to clue 1. Original clue and green check Completed remain visible, with no answer reveal.
+9. **All quests:** Reload, then solve BOOK -> OPEN -> WATER -> KEY -> DOOR -> LIGHT. Expect the corresponding quest complete each time and 6 / 6 at the end. All clues remain navigable; no stage transition or scene reaction occurs.
+10. **No answer leak:** Before solving, inspect all six clues and progress. No target labels, answer lists, hints or debug words. The word 'door' in the first clue is intentional baseline context, not that clue's answer. Board letters and player-built/current/submitted words remain visible by design.
+11. **Input safety:** Click/hold/release Previous and Next without clicking canvas. No current word or path starts. Then hold mouse on canvas and confirm normal selection. Keyboard Tab + Enter can also navigate.
+12. **Regression:** Check cardinal movement, held-key nonrepeat, no diagonal, floating letter on arrival, selection start at player tile, K -> E -> Y -> E backtracking to KE, tile reuse in later selections, path and all feedback tones. Test mouse release outside canvas, blur/resume, resize and developer-console errors. Camera, lighting and environment should match the previous prompt.
 
 ## Verification and limitations
 
-22/22 automated tests pass. Existing movement/grid/selection tests remain unchanged and pass. New tests exercise all six real board paths through submission, validation, progress and feedback; normalization; wrong words; duplicates; resolving start guard; retained path; cleanup; tile reuse; and interrupted feedback.
+27/27 automated tests pass, including the original 22 movement/grid/selection/validation regression tests and five quest tests. Quest tests cover all 720 completion orders, normalization, non-focused completion, duplicate/wrong handling, completion-event mapping and post-commit state, navigation wrap, completed revisiting, delayed advance, skipping completed quests, manual override, empty data and invalid mappings.
 
-TypeScript and production build pass. Existing Vite large-chunk warning remains (approximately 563 kB minified / 142 kB gzip).
+TypeScript and Vite production build pass. Vite retains its large-chunk warning: approximately 567 kB minified / 144 kB gzip.
 
-Browser inventory returned no connected browsers. Browser-native pointer capture, actual console output, animation screenshots and responsive visual QA remain unverified. Automated input/state tests do not substitute for those manual checks. No touch controls or save system are included.
+Browser inventory returned no connected browsers. Actual WebGL screenshots, responsive visual QA, browser-native button/pointer behavior and console errors remain unverified; the manual checks above are required. Automated state tests do not substitute for browser playtesting. Existing desktop keyboard/mouse requirements remain; no touch controls or persistence were added.
+
+No Git commands were run.
