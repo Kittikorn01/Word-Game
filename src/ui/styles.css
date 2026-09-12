@@ -57,3 +57,11 @@ kbd { font: inherit; font-weight: 600; letter-spacing: 0.08em; }
   .quest-hud { top: 10px; left: 12px; width: 235px; padding: 8px 12px; }
   .quest-hud__clue { font-size: 12px; }
 }
+/* Discovery uses dark cocoa + gilded edge, separate from amber validation feedback. */
+.new-quest { position: absolute; top: 138px; left: 50%; transform: translateX(-50%); width: min(340px,calc(100vw - 32px)); padding: 13px 19px; border: 1px solid #d5b477; border-top: 3px solid #ead3a1; border-radius: 12px; background: #514338f5; color: #fff5df; box-shadow: 0 4px 24px #d2ac6338; text-align: center; pointer-events: none; }
+.new-quest strong { color: #f0d8a5; letter-spacing: .18em; font-size: 12px; }
+.new-quest p { margin: 8px 0 0; font-size: 14px; line-height: 1.45; }
+.exit-prompt { position: absolute; bottom: 72px; left: 50%; transform: translateX(-50%); max-width: calc(100vw - 32px); padding: 9px 16px; border: 1px solid #d1bfa0; border-radius: 18px; background: #faf3e6f2; color: #514b3c; font-size: 13px; text-align: center; pointer-events: none; }
+@media (min-width: 601px) and (max-width: 1100px) { .new-quest { left: auto; right: 20px; width: min(320px,calc(100vw - 340px)); translate: 50% 0; } }
+@media (max-width: 600px) { .new-quest { top: 12px; } #app:has(.new-quest:not([hidden])) .quest-hud { visibility: hidden; } .exit-prompt { bottom: 72px; font-size: 12px; } }
+@media (prefers-reduced-motion: reduce) { .new-quest { transform: translateX(-50%) !important; } }

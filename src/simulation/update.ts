@@ -1,3 +1,5 @@
+import { createExitState } from './ExitInteraction.ts';
+import { createStageWorldState } from './WorldReactionController.ts';
 import type { GameState, MoveAction } from './types.ts';
 import { createWordProgress } from './WordProgress.ts';
 import { createQuestProgress } from './QuestProgress.ts';
@@ -9,7 +11,7 @@ export function createGameState(start: GridCoordinate, grid: GridDefinition, que
   if (!Number.isInteger(start.row) || !Number.isInteger(start.column) || start.row < 0 || start.column < 0 || start.row >= grid.rows || start.column >= grid.columns) {
     throw new Error('Player start must be a valid grid coordinate.');
   }
-  return { words: createWordProgress(), quests: createQuestProgress(quests), player: { currentTile: { ...start }, targetTile: null, elapsed: 0, heading: 0 } };
+  return { exit: createExitState(), world: createStageWorldState(), words: createWordProgress(), quests: createQuestProgress(quests), player: { currentTile: { ...start }, targetTile: null, elapsed: 0, heading: 0 } };
 }
 /** First keydown wins; commands during an active step are discarded. */
 export function requestMovement(state: GameState, action: MoveAction, grid: GridDefinition): boolean {
@@ -29,4 +31,6 @@ export function updateMovement(state: GameState, dt: number): boolean {
   player.currentTile = player.targetTile; player.targetTile = null; player.elapsed = 0;
   return true;
 }
+
+
 

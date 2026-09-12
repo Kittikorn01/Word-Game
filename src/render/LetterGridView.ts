@@ -13,7 +13,7 @@ export class LetterGridView {
   private raycaster = new THREE.Raycaster();
   private pointer = new THREE.Vector2();
   private color = new THREE.Color();
-  constructor(private grid: LetterGrid, assets: PrimitiveAssets) {
+  constructor(private grid: LetterGrid, assets: PrimitiveAssets, private minimumBrightness = 0) {
     const size = grid.definition.tileSize;
     for (const tile of grid.tiles) {
       const root = new THREE.Group();
@@ -63,8 +63,9 @@ export class LetterGridView {
       entry.root.position.y = THREE.MathUtils.lerp(entry.root.position.y, lift, blend);
       this.color.set(tone === 'wrong' ? '#ddc8bd' : tone === 'already' ? '#f4e7c5' : colors[state]);
       entry.material.color.lerp(state === 'NORMAL' ? entry.normal : this.color, blend);
-      entry.material.emissive.set('#dba03d');
-      entry.material.emissiveIntensity = state === 'CORRECT' ? 0.18 + pulse * 0.5 : tone ? 0.04 : state === 'SELECTED' ? 0.16 : 0;
+      // Cottage floor keeps a small material fill even when room lighting is dim.
+      entry.material.emissive.set(state === 'NORMAL' && !tone ? '#e8dcc2' : '#dba03d');
+      entry.material.emissiveIntensity = this.minimumBrightness + (state === 'CORRECT' ? 0.18 + pulse * 0.5 : tone ? 0.04 : state === 'SELECTED' ? 0.16 : 0);
     });
   }
   pick(clientX: number, clientY: number, canvas: HTMLCanvasElement, camera: THREE.Camera): string | null {
@@ -82,3 +83,4 @@ export class LetterGridView {
     this.root.clear();
   }
 }
+

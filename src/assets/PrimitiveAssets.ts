@@ -10,6 +10,8 @@ export class PrimitiveAssets {
     body: new THREE.CylinderGeometry(0.19, 0.27, 0.46, 8)
   };
   readonly material = {
+    cottageWood: this.make('#795940'), cottageFloor: this.make('#b89b78'),
+    plaster: this.make('#e2d5b9'), fabric: this.make('#758b7c'), windowSky: this.make('#b3c8d8'),
     grass: this.make('#9cb786'), earth: this.make('#b49a78'),
     tile: this.make('#e8dcc2'), tileAlt: this.make('#dfd4b9'),
     trunk: this.make('#957258'), leaf: this.make('#689879'), leafLight: this.make('#87ac80'),
@@ -29,3 +31,4 @@ export class PrimitiveAssets {
     Object.values(this.material).forEach(resource => resource.dispose());
   }
 }
+

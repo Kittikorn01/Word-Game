@@ -1,3 +1,4 @@
+import { paths } from './stage1-paths.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createStageWordValidator } from '../src/validation/WordValidator.ts';
@@ -21,9 +22,10 @@ test('all six real board paths resolve; correct tiles persist, cleanup allows re
   let last;
   const selection = new WordSelection(grid, s => { last = resolveWord(progress, s, validate); feedback.begin(last); });
   const start = id => !feedback.isResolving && selection.start(id);
-  for (const [word, row, column] of [['KEY',0,0], ['LIGHT',1,1], ['WATER',2,0], ['BOOK',3,1], ['DOOR',4,0], ['OPEN',5,1], ['KEY',0,0]]) {
+  for (const word of [...stage1.vocabulary, 'KEY']) {
+    const [[row, column], ...rest] = paths[word];
     assert.equal(start(grid.getTile(row,column).id), true);
-    for (let i=1;i<word.length;i++) selection.enterTile(grid.getTile(row,column+i).id);
+    for (const [r,c] of rest) selection.enterTile(grid.getTile(r,c).id);
     assert.equal(selection.currentWord, word);
     const duplicate = progress.completedWords.includes(word);
     selection.submit();
@@ -60,3 +62,4 @@ test('backtrack does not validate before release; wrong and interrupted feedback
   feedback.clear(); assert.deepEqual(progress.completedWords,['KEY']);
   assert.ok(grid.tiles.every(t=>t.state==='NORMAL' && t.correctRemaining===0));
 });
+

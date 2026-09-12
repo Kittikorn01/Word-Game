@@ -1,7 +1,13 @@
+import type { ExitDefinition } from '../simulation/ExitInteraction.ts';
+import type { WorldReactionMap } from '../simulation/WorldReactionController.ts';
 import type { MovementBounds, Position } from '../simulation/types.ts';
 import type { QuestDefinition } from '../quests/types.ts';
 export interface StageDefinition {
   id: string;
+  exit?: ExitDefinition;
+  environment?: 'cottage';
+  worldReactions?: WorldReactionMap;
+  worldObjects?: Readonly<Record<'key' | 'lamp' | 'plant' | 'book' | 'door', Position>>;
   grid: { columns: number; rows: number; tileSize: number };
   letterLayout?: readonly string[];
   vocabulary?: readonly string[];
@@ -18,3 +24,6 @@ export function movementBounds(stage: StageDefinition): MovementBounds {
   const halfZ = stage.grid.rows * stage.grid.tileSize / 2;
   return { minX: -halfX, maxX: halfX, minZ: -halfZ, maxZ: halfZ };
 }
+
+
+

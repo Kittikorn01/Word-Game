@@ -1,3 +1,5 @@
+import { CottageLighting } from './CottageLighting.ts';
+import { WorldReactionView } from './WorldReactionView.ts';
 import * as THREE from 'three';
 import type { FeedbackVisual } from '../feedback/WordFeedback.ts';
 import { FloatingLetterView } from './FloatingLetterView.ts';
@@ -20,6 +22,9 @@ export class GameView {
   private camera = new THREE.OrthographicCamera(-8, 8, 8, -8, 0.1, 100);
   private player = createPlayer(this.assets);
   private resizeObserver: ResizeObserver;
+  private cottageLighting?: CottageLighting;
+  private outsideMaterial?: THREE.MeshBasicMaterial;
+  private world?: WorldReactionView;
   private letters: LetterGridView;
   private selectionPath = new SelectionPathView();
   private floatingLetter = new FloatingLetterView();
@@ -29,19 +34,32 @@ export class GameView {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.setClearColor('#dce4d6');
-    this.renderer.domElement.setAttribute('aria-label', 'A small woodland diorama. Move with WASD or arrow keys.');
+    this.renderer.domElement.setAttribute('aria-label', 'A cozy diorama with a letter floor. Move with WASD or arrow keys.');
     host.append(this.renderer.domElement);
     // No yaw: grid left/right stays screen left/right; fixed elevation ≈ 55 degrees.
     this.camera.position.set(0, 16, 11); this.camera.lookAt(0, 0, 0);
+    if (stage.environment === 'cottage') {
+      this.cottageLighting = new CottageLighting(); this.scene.add(this.cottageLighting.root);
+      // Exterior backdrop stays daylight-colored, independent of every room light.
+      this.outsideMaterial = new THREE.MeshBasicMaterial({ color: '#dce4d6', toneMapped: false });
+      // A small local material fill preserves the player's silhouette in the dim room.
+      for (const surface of ['coat', 'skin', 'hat', 'boots'] as const) {
+        const material = this.assets.material[surface];
+        material.emissive.copy(material.color); material.emissiveIntensity = .22;
+      }
+    } else {
     this.scene.add(new THREE.HemisphereLight('#fff7df', '#849580', 2.1));
     const sun = new THREE.DirectionalLight('#fff0d3', 3);
     sun.position.set(-5, 12, 7); sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024);
     Object.assign(sun.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: 0.5, far: 35 });
     sun.shadow.normalBias = 0.04; this.scene.add(sun);
+    }
     const ground = this.assets.mesh('box', 'ground'); ground.scale.set(200, 0.1, 200); ground.position.y = -0.87; ground.castShadow = false;
+    if (this.outsideMaterial) { ground.material = this.outsideMaterial; ground.receiveShadow = false; }
     this.scene.add(ground, createDiorama(stage, this.assets), this.player);
-    this.letters = new LetterGridView(grid, this.assets); this.scene.add(this.letters.root, this.selectionPath.root, this.floatingLetter.sprite);
+    if (stage.worldObjects) { this.world = new WorldReactionView(this.assets, stage.worldObjects); this.scene.add(this.world.objects.root); }
+    this.letters = new LetterGridView(grid, this.assets, this.cottageLighting ? .3 : 0); this.scene.add(this.letters.root, this.selectionPath.root, this.floatingLetter.sprite);
     const resize = () => {
       const width = Math.max(1, host.clientWidth), height = Math.max(1, host.clientHeight);
       const aspect = width / height;
@@ -54,6 +72,8 @@ export class GameView {
   }
   pickTile = (x: number, y: number): string | null => this.letters.pick(x, y, this.renderer.domElement, this.camera);
   render(state: GameState, dt: number, selectedTiles: readonly LetterTile[] = [], feedback?: FeedbackVisual): void {
+
+    this.cottageLighting?.update(state.world.lightOn, dt);
     this.letters.update(dt, new Set(selectedTiles.map(tile => tile.id)), feedback);
     this.selectionPath.update(selectedTiles, feedback);
     const current = state.player.currentTile, target = state.player.targetTile ?? current;
@@ -62,14 +82,20 @@ export class GameView {
     const t = state.player.targetTile ? Math.min(1, state.player.elapsed / STEP_DURATION) : 0;
     const eased = t * t * (3 - 2 * t);
     const x = THREE.MathUtils.lerp(from.x, to.x, eased), z = THREE.MathUtils.lerp(from.z, to.z, eased);
+    this.world?.update(state.world, dt, {x,z});
     this.player.position.set(x, 0.105, z);
     this.floatingLetter.update(this.grid.getTile(current.row, current.column)!.letter, x, z);
     this.player.rotation.y = state.player.heading;
     this.renderer.render(this.scene, this.camera);
   }
   dispose(): void {
+    this.outsideMaterial?.dispose();
     this.resizeObserver.disconnect();
     this.scene.traverse(object => { if (object instanceof THREE.DirectionalLight) object.shadow.dispose(); });
-    this.floatingLetter.dispose(); this.selectionPath.dispose(); this.letters.dispose(); this.assets.dispose(); this.renderer.dispose(); this.renderer.domElement.remove();
+    this.world?.dispose(); this.floatingLetter.dispose(); this.selectionPath.dispose(); this.letters.dispose(); this.assets.dispose(); this.renderer.dispose(); this.renderer.domElement.remove();
   }
 }
+
+
+
+

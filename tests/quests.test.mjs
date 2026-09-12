@@ -1,4 +1,4 @@
-import test from 'node:test';
+﻿import test from 'node:test';
 import assert from 'node:assert/strict';
 import { stage1 } from '../src/stages/stage1.ts';
 import { createGameState } from '../src/simulation/update.ts';
@@ -12,17 +12,17 @@ const setup = () => {
     events.push(id);
   }) };
 };
-test('six available data-driven clues contain no own target; navigation wraps and preserves progress', () => {
+test('five available data-driven clues contain no own target; navigation wraps and preserves progress', () => {
   const s = setup();
   assert.equal(s.quests.definitions.length, 6);
-  for (const q of s.quests.definitions) {
+  for (const q of s.quests.definitions.slice(0,5)) {
     assert.equal(questStatus(q, s.words), 'AVAILABLE');
     assert.ok(!q.clue.toUpperCase().includes(q.targetWord));
     assert.equal(s.quests.definitions[s.quests.focusedIndex].id, q.id);
     navigateQuest(s.quests, 1);
   }
   assert.equal(s.quests.focusedIndex, 0);
-  navigateQuest(s.quests, -1); assert.equal(s.quests.focusedIndex, 5);
+  navigateQuest(s.quests, -1); assert.equal(s.quests.focusedIndex, 4);
   assert.deepEqual(s.words.completedWords, []);
 });
 test('non-focused WATER completes; wrong and duplicate keep focus/progress and emit no completion', () => {
@@ -53,7 +53,11 @@ test('all 720 quest orders complete exactly once with no stage transition', () =
   }
   for (const order of permutations(stage1.vocabulary)) {
     const s = setup();
-    for (const word of order) { assert.equal(s.submit(word).status, 'CORRECT'); finishQuestFeedback(s.quests, s.words); }
+    for (const word of order) {
+      const locked = word === 'OPEN' && !s.words.completedWords.includes('DOOR');
+      assert.equal(s.submit(word).status, locked ? 'WRONG' : 'CORRECT'); finishQuestFeedback(s.quests, s.words);
+    }
+    if (!s.words.completedWords.includes('OPEN')) assert.equal(s.submit('OPEN').status,'CORRECT');
     assert.ok(s.quests.definitions.every(q => questStatus(q, s.words) === 'COMPLETED'));
     const focus = s.quests.focusedIndex;
     for (const word of order) assert.equal(s.submit(word).status, 'ALREADY_COMPLETED');
@@ -69,3 +73,4 @@ test('quest policy rejects vocabulary words without a quest and malformed quest 
   const empty = createQuestProgress(); navigateQuest(empty, 1); finishQuestFeedback(empty, { completedWords: [] });
   assert.equal(empty.focusedIndex, 0);
 });
+

@@ -1,7 +1,9 @@
+import { createCottage } from './createCottage.ts';
 import { Group } from 'three';
 import type { PrimitiveAssets } from '../assets/PrimitiveAssets.ts';
 import type { StageDefinition } from '../stages/types.ts';
 export function createDiorama(stage: StageDefinition, assets: PrimitiveAssets): Group {
+  if (stage.environment === 'cottage') return createCottage(stage, assets);
   const root = new Group();
   const width = stage.grid.columns * stage.grid.tileSize + 3;
   const depth = stage.grid.rows * stage.grid.tileSize + 3;
@@ -22,3 +24,4 @@ export function createDiorama(stage: StageDefinition, assets: PrimitiveAssets): 
   }
   return root;
 }
+
