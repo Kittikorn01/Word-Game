@@ -4,8 +4,10 @@ import type { StageDefinition } from './types.ts';
 export const stage1: StageDefinition = {
   ...prototypeStage,
   id: 'stage-1-letter-clearing',
+  title: 'The Locked Cottage',
+  stageNumber: 1,
+  nextStageId: 'stage-2-forest-path',
   environment: 'cottage',
-  exit: { tiles: [{ row: 0, column: 6 }], requiresKey: true },
   decorations: [],
   letterLayout: [
     'KEYXLAR',

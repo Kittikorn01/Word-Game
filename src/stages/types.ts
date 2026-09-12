@@ -4,6 +4,10 @@ import type { MovementBounds, Position } from '../simulation/types.ts';
 import type { QuestDefinition } from '../quests/types.ts';
 export interface StageDefinition {
   id: string;
+  title?: string;
+  stageNumber?: number;
+  kind?: 'playable' | 'placeholder';
+  nextStageId?: string;
   exit?: ExitDefinition;
   environment?: 'cottage';
   worldReactions?: WorldReactionMap;

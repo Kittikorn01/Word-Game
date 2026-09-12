@@ -17,6 +17,7 @@ export class WorldReactionController {
   private pending = new Map<Exclude<keyof StageWorldState, 'keyAcquisitionProgress' | 'hasKey'>, number>();
   private state: StageWorldState;
   private mapping: WorldReactionMap;
+  get isBusy(): boolean { return this.pending.size > 0 || (this.state.keySpawned && !this.state.hasKey); }
   constructor(state: StageWorldState, mapping: WorldReactionMap = {}) {
     this.state = state; this.mapping = mapping;
   }

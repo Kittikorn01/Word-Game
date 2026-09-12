@@ -16,6 +16,12 @@ export class WorldReactionView {
   private door = 0;
   private angle = 0;
   private revealed = false;
+  /** Readiness of finite reactions only; idle animation never blocks stage flow. */
+  isBusy(state: Readonly<StageWorldState>): boolean {
+    return (state.bookSpawned && this.book < 1) || (state.lightOn && this.light < 1)
+      || (state.plantWatered && this.plant < 1) || (state.doorRevealed && this.door < 1)
+      || (state.doorOpen && Math.abs(this.angle + Math.PI / 3) > .005);
+  }
   constructor(assets: PrimitiveAssets, positions: NonNullable<StageDefinition['worldObjects']>) {
     this.objects = createWorldObjects(assets, positions);
     this.objects.key.visible = this.objects.door.visible = this.objects.drops.visible = false;

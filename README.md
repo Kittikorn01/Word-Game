@@ -1,4 +1,6 @@
-﻿# Stage 1 — Cottage narrative and exit interaction
+> Current behavior: Prompt 6 stage completion and transitions are implemented. See [STAGE_PROGRESSION.md](STAGE_PROGRESSION.md) for architecture and all 10 acceptance tests. Older Press-E exit instructions below are historical and superseded.
+
+# Stage 1 � Cottage narrative and exit interaction
 
 Continues the existing Three.js + TypeScript + Vite runtime. Letter layout, word routes, movement, selection, feedback semantics, camera and cottage shell remain intact. No new dependencies, Git commands, Stage 2, stage loading, transition, inventory UI or save system.
 
@@ -197,3 +199,4 @@ so live screenshots, perceived brightness/animation readability and browser
 console verification remain pending manual playtest. Assets are procedural
 low-poly placeholders, not imported art. Build reports the >500 kB chunk warning;
 no new dependency was introduced. No Git commands were used.
+

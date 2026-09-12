@@ -71,6 +71,7 @@ export class GameView {
     this.resizeObserver = new ResizeObserver(resize); this.resizeObserver.observe(host); resize();
   }
   pickTile = (x: number, y: number): string | null => this.letters.pick(x, y, this.renderer.domElement, this.camera);
+  reactionsBusy(state: GameState): boolean { return this.world?.isBusy(state.world) ?? false; }
   render(state: GameState, dt: number, selectedTiles: readonly LetterTile[] = [], feedback?: FeedbackVisual): void {
 
     this.cottageLighting?.update(state.world.lightOn, dt);

@@ -1,4 +1,4 @@
-﻿import test from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
 import { stage1 } from '../src/stages/stage1.ts';
 import { createGameState, requestMovement, updateMovement } from '../src/simulation/update.ts';
@@ -39,18 +39,18 @@ test('key flight is simulation-owned, once only, and completes after 1.8 seconds
   c.update(.9); assert.equal(s.world.hasKey,true);
   submit('KEY'); c.update(2); assert.equal(s.world.keyAcquisitionProgress,1);
 });
-test('exit needs nearby stationary tile, all quests, open door and key; completion commits once',()=>{
+test('legacy exit helper remains isolated from the stage runtime',()=>{
   const {state:s,submit,controller:c}=setup(), events=[];
-  const press=()=>interactWithExit(s,stage1.exit,stage1.id,id=>events.push(id));
+  const press=()=>interactWithExit(s,{ tiles: [{row:0,column:6}], requiresKey:true },stage1.id,id=>events.push(id));
   submit('DOOR'); submit('OPEN'); c.update(.25);
-  s.player.currentTile={row:0,column:6}; updateExitInteraction(s,stage1.exit);
+  s.player.currentTile={row:0,column:6}; updateExitInteraction(s,{ tiles: [{row:0,column:6}], requiresKey:true });
   assert.equal(s.exit.nearby,true); assert.equal(press(),false);
   for(const w of ['LIGHT','WATER','BOOK','KEY']) submit(w);
   c.update(.25); assert.equal(press(),false); c.update(1.8);
   s.world.doorOpen=false; assert.equal(press(),false); s.world.doorOpen=true;
   s.player.currentTile={row:1,column:6}; assert.equal(press(),false);
   requestMovement(s,{x:0,z:-1},stage1.grid); assert.equal(press(),false);
-  updateMovement(s,.18); updateExitInteraction(s,stage1.exit); assert.equal(s.exit.canInteractWithExit,true);
+  updateMovement(s,.18); updateExitInteraction(s,{ tiles: [{row:0,column:6}], requiresKey:true }); assert.equal(s.exit.canInteractWithExit,true);
   assert.equal(press(),true); for(let i=0;i<20;i++) assert.equal(press(),false);
   assert.deepEqual(events,[stage1.id]); assert.equal(s.exit.completed,true);
 });
@@ -81,4 +81,5 @@ test('E input rejects repeat, typing and modifiers; release, blur and teardown w
   input.dispose(); emit(window,'keyup'); emit(window,'keydown'); assert.equal(count,3);
   delete globalThis.window; delete globalThis.document; delete globalThis.HTMLElement;
 });
+
 
