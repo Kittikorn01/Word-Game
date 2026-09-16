@@ -1,3 +1,4 @@
+import type { ScanState } from '../simulation/AssistanceState.ts';
 import * as THREE from 'three';
 import type { FeedbackVisual } from '../feedback/WordFeedback.ts';
 import { CORRECT_DURATION, type LetterGrid } from '../grid/LetterGrid.ts';
@@ -51,21 +52,23 @@ export class LetterGridView {
     const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false, toneMapped: false });
     this.letters.set(letter, material); return material;
   }
-  update(dt: number, selectedIds: ReadonlySet<string> = new Set(), feedback?: FeedbackVisual): void {
+  update(dt: number, selectedIds: ReadonlySet<string> = new Set(), feedback?: FeedbackVisual, scan?: ScanState | null): void {
     const blend = 1 - Math.exp(-24 * dt);
     this.grid.tiles.forEach((tile, index) => {
       const selected = selectedIds.has(tile.id);
       const tone = selected ? feedback?.tone : undefined;
       const entry = this.entries[index], state = tile.state === 'CORRECT' ? 'CORRECT' : selected ? 'SELECTED' : this.grid.visualState(tile);
+      const scanned = !!scan?.tileIds.has(tile.id) && !tone && (state === 'NORMAL' || state === 'HOVER');
+      const searchPulse = scanned ? .5 + .5 * Math.sin((3 - scan!.remaining) * 7) : 0;
       const progress = 1 - tile.correctRemaining / CORRECT_DURATION;
       const pulse = state === 'CORRECT' ? Math.sin(Math.PI * progress) ** 2 : 0;
-      const lift = state === 'CORRECT' ? 0.13 + pulse * 0.15 : tone ? 0.045 : state === 'SELECTED' ? 0.13 : state === 'HOVER' ? 0.055 : 0;
+      const lift = state === 'CORRECT' ? 0.13 + pulse * 0.15 : tone ? 0.045 : state === 'SELECTED' ? 0.13 : scanned ? .045 + searchPulse * .025 : state === 'HOVER' ? 0.055 : 0;
       entry.root.position.y = THREE.MathUtils.lerp(entry.root.position.y, lift, blend);
-      this.color.set(tone === 'wrong' ? '#ddc8bd' : tone === 'already' ? '#f4e7c5' : colors[state]);
-      entry.material.color.lerp(state === 'NORMAL' ? entry.normal : this.color, blend);
+      this.color.set(tone === 'wrong' ? '#ddc8bd' : tone === 'already' ? '#f4e7c5' : scanned ? '#a9d4d6' : colors[state]);
+      entry.material.color.lerp(state === 'NORMAL' && !scanned ? entry.normal : this.color, blend);
       // Cottage floor keeps a small material fill even when room lighting is dim.
-      entry.material.emissive.set(state === 'NORMAL' && !tone ? '#e8dcc2' : '#dba03d');
-      entry.material.emissiveIntensity = this.minimumBrightness + (state === 'CORRECT' ? 0.18 + pulse * 0.5 : tone ? 0.04 : state === 'SELECTED' ? 0.16 : 0);
+      entry.material.emissive.set(scanned ? '#79bec7' : state === 'NORMAL' && !tone ? '#e8dcc2' : '#dba03d');
+      entry.material.emissiveIntensity = this.minimumBrightness + (state === 'CORRECT' ? 0.18 + pulse * 0.5 : tone ? 0.04 : state === 'SELECTED' ? 0.16 : scanned ? .12 + searchPulse * .12 : 0);
     });
   }
   pick(clientX: number, clientY: number, canvas: HTMLCanvasElement, camera: THREE.Camera): string | null {

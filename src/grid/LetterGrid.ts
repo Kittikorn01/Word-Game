@@ -26,6 +26,7 @@ export class LetterGrid {
     })));
     this.tiles.forEach(tile => this.byId.set(tile.id, tile));
   }
+  findLetter(letter: string): readonly LetterTile[] { return this.tiles.filter(tile => tile.letter === letter); }
   getById(id: string | null): LetterTile | undefined { return id === null ? undefined : this.byId.get(id); }
   getTile(row: number, column: number): LetterTile | undefined {
     if (!Number.isInteger(row) || !Number.isInteger(column) || row < 0 || column < 0 || row >= this.definition.rows || column >= this.definition.columns) return;

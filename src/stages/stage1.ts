@@ -9,6 +9,10 @@ export const stage1: StageDefinition = {
   nextStageId: 'stage-2-forest-path',
   environment: 'cottage',
   decorations: [],
+  supportObjectives: [
+    { id: 'inspect-bookshelf', label: 'Inspect the bookshelf.', tile: { row: 0, column: 3 }, reward: 1 },
+    { id: 'examine-window', label: 'Examine the window.', tile: { row: 0, column: 1 }, reward: 1 }
+  ],
   letterLayout: [
     'KEYXLAR',
     'KEXNISO',

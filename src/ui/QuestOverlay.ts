@@ -8,6 +8,8 @@ export function createQuestOverlay(host: HTMLElement, onFocus: (index: number) =
   element.innerHTML = '<div class="quest-hud__heading"><strong>QUESTS</strong><span class="quest-hud__progress"></span></div><ul class="quest-hud__list" aria-label="Stage quests"></ul><div class="quest-hud__content" aria-live="polite" aria-atomic="true"><p class="quest-hud__clue"></p></div>';
   const list = element.querySelector<HTMLUListElement>('.quest-hud__list')!;
   const clue = element.querySelector<HTMLElement>('.quest-hud__clue')!;
+  const hint = document.createElement('p'); hint.className = 'quest-hud__hint'; hint.hidden = true;
+  element.querySelector('.quest-hud__content')!.append(hint);
   const counter = element.querySelector<HTMLElement>('.quest-hud__progress')!;
   const rows = new Map<string, { item: HTMLLIElement; button: HTMLButtonElement; mark: HTMLElement; text: HTMLElement }>();
   const abort = new AbortController();
@@ -40,6 +42,7 @@ export function createQuestOverlay(host: HTMLElement, onFocus: (index: number) =
       counter.textContent = `${completed} / ${visible.length}`;
       counter.setAttribute('aria-label',`${completed} of ${visible.length} discovered quests completed`);
     },
+    renderHint(text: string) { hint.hidden = !text; const value = text ? `Hint: ${text}` : ''; if (hint.textContent !== value) hint.textContent = value; },
     dispose() { abort.abort(); element.remove(); }
   };
 }

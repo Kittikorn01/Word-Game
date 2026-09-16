@@ -21,12 +21,15 @@ export function createWorldObjects(assets: PrimitiveAssets, positions: NonNullab
     const group = new THREE.Group(); group.name = name;
     group.position.set(positions[name].x, 0.04, positions[name].z); root.add(group); return group;
   };
+  const keyGold = material('#ffd875'); keyGold.metalness = .3; keyGold.roughness = .32; keyGold.emissive.set('#ffbf4a'); keyGold.emissiveIntensity = .7;
   const keyStand = anchor('key'); // Presentation anchor only: no pedestal.
   const key = new THREE.Group(); key.position.y = .7; keyStand.add(key);
   // Square bow with an actual hole, shaft and teeth; light enough to read against the board.
-  box(key, gold, -.2, .16, 0, .1, .4, .1); box(key, gold, .1, .16, 0, .1, .4, .1);
-  box(key, gold, -.05, .36, 0, .4, .08, .1); box(key, gold, -.05, -.04, 0, .4, .08, .1);
-  box(key, gold, .28, .04, 0, .45, .09, .1); box(key, gold, .43, -.04, 0, .09, .2, .1);
+  box(key, keyGold, -.2, .16, 0, .1, .4, .1); box(key, keyGold, .1, .16, 0, .1, .4, .1);
+  box(key, keyGold, -.05, .36, 0, .4, .08, .1); box(key, keyGold, -.05, -.04, 0, .4, .08, .1);
+  box(key, keyGold, .28, .04, 0, .45, .09, .1); box(key, keyGold, .43, -.04, 0, .09, .2, .1);
+  const trailMaterial = new THREE.MeshBasicMaterial({color:'#ffe4a0',transparent:true,opacity:.65,depthWrite:false}); owned.push(trailMaterial);
+  const keyTrail = Array.from({length: 6}, () => { const mote = new THREE.Mesh(assets.geometry.rock, trailMaterial); mote.visible = false; root.add(mote); return mote; });
   const bulbs: THREE.MeshStandardMaterial[] = [];
   const lights: THREE.PointLight[] = [];
   for (const x of [-4.25,1.55,4.25]) {
@@ -104,6 +107,6 @@ export function createWorldObjects(assets: PrimitiveAssets, positions: NonNullab
   for (const y of [.25,1.4]) box(hinge,darkWood,.5,y,.1,.9,.09,.045);
   box(frame,wood,0,0,0,1.32,.08,.45); box(hinge, gold, .85, .82, .1, .09, .09, .09);
   for (const part of hinge.children) part.position.z -= .08;
-  return { root, key, keyStand, drops, bulbs, lights, book, bookHome, bookCover: cover, shelfBooks, shelfMaterials: [shelfWood, shelfBack, shelfPages, ...covers], wallCover, doorway, door, frame, hinge, growth, foliage, light, dispose: () => owned.forEach(value => value.dispose()) };
+  return { root, key, keyStand, keyTrail, drops, bulbs, lights, book, bookHome, bookCover: cover, shelfBooks, shelfMaterials: [shelfWood, shelfBack, shelfPages, ...covers], wallCover, doorway, door, frame, hinge, growth, foliage, light, dispose: () => owned.forEach(value => value.dispose()) };
 }
 

@@ -1,3 +1,6 @@
+import type { SupportObjectives } from '../simulation/SupportObjectives.ts';
+import { WordShardView } from './WordShardView.ts';
+import type { AssistanceState } from '../simulation/AssistanceState.ts';
 import { CottageLighting } from './CottageLighting.ts';
 import { WorldReactionView } from './WorldReactionView.ts';
 import * as THREE from 'three';
@@ -25,6 +28,7 @@ export class GameView {
   private cottageLighting?: CottageLighting;
   private outsideMaterial?: THREE.MeshBasicMaterial;
   private world?: WorldReactionView;
+  private shards: WordShardView;
   private letters: LetterGridView;
   private selectionPath = new SelectionPathView();
   private floatingLetter = new FloatingLetterView();
@@ -59,6 +63,7 @@ export class GameView {
     if (this.outsideMaterial) { ground.material = this.outsideMaterial; ground.receiveShadow = false; }
     this.scene.add(ground, createDiorama(stage, this.assets), this.player);
     if (stage.worldObjects) { this.world = new WorldReactionView(this.assets, stage.worldObjects); this.scene.add(this.world.objects.root); }
+    this.shards = new WordShardView(stage); this.scene.add(this.shards.root);
     this.letters = new LetterGridView(grid, this.assets, this.cottageLighting ? .3 : 0); this.scene.add(this.letters.root, this.selectionPath.root, this.floatingLetter.sprite);
     const resize = () => {
       const width = Math.max(1, host.clientWidth), height = Math.max(1, host.clientHeight);
@@ -72,10 +77,11 @@ export class GameView {
   }
   pickTile = (x: number, y: number): string | null => this.letters.pick(x, y, this.renderer.domElement, this.camera);
   reactionsBusy(state: GameState): boolean { return this.world?.isBusy(state.world) ?? false; }
-  render(state: GameState, dt: number, selectedTiles: readonly LetterTile[] = [], feedback?: FeedbackVisual): void {
+  render(state: GameState, dt: number, selectedTiles: readonly LetterTile[] = [], feedback?: FeedbackVisual, assistance?: AssistanceState, support?: SupportObjectives): void {
 
     this.cottageLighting?.update(state.world.lightOn, dt);
-    this.letters.update(dt, new Set(selectedTiles.map(tile => tile.id)), feedback);
+    this.letters.update(dt, new Set(selectedTiles.map(tile => tile.id)), feedback, assistance?.scanState);
+    this.shards.update(dt, support?.rewardVisual ?? null);
     this.selectionPath.update(selectedTiles, feedback);
     const current = state.player.currentTile, target = state.player.targetTile ?? current;
     const from = gridToWorld(current.column, current.row, this.grid.definition);
@@ -90,6 +96,7 @@ export class GameView {
     this.renderer.render(this.scene, this.camera);
   }
   dispose(): void {
+    this.shards.dispose();
     this.outsideMaterial?.dispose();
     this.resizeObserver.disconnect();
     this.scene.traverse(object => { if (object instanceof THREE.DirectionalLight) object.shadow.dispose(); });

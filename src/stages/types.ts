@@ -1,3 +1,4 @@
+import type { SupportObjectiveDefinition } from '../simulation/SupportObjectives.ts';
 import type { ExitDefinition } from '../simulation/ExitInteraction.ts';
 import type { WorldReactionMap } from '../simulation/WorldReactionController.ts';
 import type { MovementBounds, Position } from '../simulation/types.ts';
@@ -13,6 +14,8 @@ export interface StageDefinition {
   worldReactions?: WorldReactionMap;
   worldObjects?: Readonly<Record<'key' | 'lamp' | 'plant' | 'book' | 'door', Position>>;
   grid: { columns: number; rows: number; tileSize: number };
+  supportObjectives?: readonly SupportObjectiveDefinition[];
+  wordShardSpawns?: readonly { id: string; row: number; column: number }[];
   letterLayout?: readonly string[];
   vocabulary?: readonly string[];
   quests?: readonly QuestDefinition[];

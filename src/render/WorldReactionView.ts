@@ -9,6 +9,8 @@ export class WorldReactionView {
   readonly objects: ReturnType<typeof createWorldObjects>;
   private initialized = false;
   private keyActive = false;
+  private keyTrailHistory: THREE.Vector3[] = [];
+  private trailClock = 0;
   private keyTarget = new THREE.Vector3();
   private book = 0;
   private light = 0;
@@ -55,6 +57,18 @@ export class WorldReactionView {
       this.objects.key.rotation.set(-.25,Math.sin(keyProgress*Math.PI)*.65,-.18);
       this.objects.key.scale.setScalar(Math.max(.02,Math.min(1,keyProgress/.16)*(1-flight*.85)));
     }
+    this.trailClock += dt;
+    if (this.objects.key.visible && keyProgress > .45) {
+      if (this.trailClock >= .035) {
+        this.trailClock = 0;
+        this.keyTrailHistory.unshift(this.objects.key.position.clone().add(this.objects.keyStand.position));
+        this.keyTrailHistory.length = Math.min(6,this.keyTrailHistory.length);
+      }
+    } else this.keyTrailHistory = [];
+    this.objects.keyTrail.forEach((mote,i) => {
+      mote.visible = !!this.keyTrailHistory[i];
+      if (mote.visible) { mote.position.copy(this.keyTrailHistory[i]); mote.scale.setScalar(.075 * (1-i/7)); }
+    });
     // A warm zone-wide response precedes the featured volume; no extra lights or particles.
     const shelfPulse = Math.sin(Math.PI * Math.min(1, this.book / .65));
     this.objects.shelfMaterials.forEach(surface => {
