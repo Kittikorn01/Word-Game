@@ -1,3 +1,4 @@
+import { RiverView } from './RiverView.ts';
 import type { SupportObjectives } from '../simulation/SupportObjectives.ts';
 import { WordShardView } from './WordShardView.ts';
 import type { AssistanceState } from '../simulation/AssistanceState.ts';
@@ -28,6 +29,7 @@ export class GameView {
   private cottageLighting?: CottageLighting;
   private outsideMaterial?: THREE.MeshBasicMaterial;
   private world?: WorldReactionView;
+  private river?: RiverView;
   private shards: WordShardView;
   private letters: LetterGridView;
   private selectionPath = new SelectionPathView();
@@ -41,7 +43,7 @@ export class GameView {
     this.renderer.domElement.setAttribute('aria-label', 'A cozy diorama with a letter floor. Move with WASD or arrow keys.');
     host.append(this.renderer.domElement);
     // No yaw: grid left/right stays screen left/right; fixed elevation ≈ 55 degrees.
-    this.camera.position.set(0, 16, 11); this.camera.lookAt(0, 0, 0);
+    this.camera.position.set(...(stage.camera?.position ?? [0, 16, 11])); this.camera.lookAt(...(stage.camera?.target ?? [0, 0, 0]));
     if (stage.environment === 'cottage') {
       this.cottageLighting = new CottageLighting(); this.scene.add(this.cottageLighting.root);
       // Exterior backdrop stays daylight-colored, independent of every room light.
@@ -59,16 +61,19 @@ export class GameView {
     Object.assign(sun.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: 0.5, far: 35 });
     sun.shadow.normalBias = 0.04; this.scene.add(sun);
     }
-    const ground = this.assets.mesh('box', 'ground'); ground.scale.set(200, 0.1, 200); ground.position.y = -0.87; ground.castShadow = false;
+    const ground = this.assets.mesh('box', 'ground'); ground.scale.set(200, 0.1, 200); ground.position.y = stage.forestBlockout ? stage.forestBlockout.baseY - .06 : -0.87; ground.castShadow = false;
     if (this.outsideMaterial) { ground.material = this.outsideMaterial; ground.receiveShadow = false; }
     this.scene.add(ground, createDiorama(stage, this.assets), this.player);
+    if (stage.forestBlockout?.river) { this.river = new RiverView(stage.forestBlockout); this.scene.add(this.river.root); }
     if (stage.worldObjects) { this.world = new WorldReactionView(this.assets, stage.worldObjects); this.scene.add(this.world.objects.root); }
     this.shards = new WordShardView(stage); this.scene.add(this.shards.root);
     this.letters = new LetterGridView(grid, this.assets, this.cottageLighting ? .3 : 0); this.scene.add(this.letters.root, this.selectionPath.root, this.floatingLetter.sprite);
     const resize = () => {
       const width = Math.max(1, host.clientWidth), height = Math.max(1, host.clientHeight);
       const aspect = width / height;
-      const verticalSpan = Math.max(stage.grid.rows * stage.grid.tileSize + 6, (stage.grid.columns * stage.grid.tileSize + 5) / aspect);
+      const verticalSpan = stage.camera
+        ? Math.max(stage.camera.verticalSpan, stage.camera.minimumWidth / aspect)
+        : Math.max(stage.grid.rows * stage.grid.tileSize + 6, (stage.grid.columns * stage.grid.tileSize + 5) / aspect);
       this.camera.left = -verticalSpan * aspect / 2; this.camera.right = verticalSpan * aspect / 2;
       this.camera.top = verticalSpan / 2; this.camera.bottom = -verticalSpan / 2;
       this.camera.updateProjectionMatrix(); this.renderer.setSize(width, height);
@@ -79,8 +84,9 @@ export class GameView {
   reactionsBusy(state: GameState): boolean { return this.world?.isBusy(state.world) ?? false; }
   render(state: GameState, dt: number, selectedTiles: readonly LetterTile[] = [], feedback?: FeedbackVisual, assistance?: AssistanceState, support?: SupportObjectives): void {
 
+    this.river?.update(dt);
     this.cottageLighting?.update(state.world.lightOn, dt);
-    this.letters.update(dt, new Set(selectedTiles.map(tile => tile.id)), feedback, assistance?.scanState);
+    this.letters.update(dt, new Set(selectedTiles.map(tile => tile.id)), feedback, assistance?.scanState, selectedTiles.at(-1)?.id);
     this.shards.update(dt, support?.rewardVisual ?? null);
     this.selectionPath.update(selectedTiles, feedback);
     const current = state.player.currentTile, target = state.player.targetTile ?? current;
@@ -91,11 +97,12 @@ export class GameView {
     const x = THREE.MathUtils.lerp(from.x, to.x, eased), z = THREE.MathUtils.lerp(from.z, to.z, eased);
     this.world?.update(state.world, dt, {x,z});
     this.player.position.set(x, 0.105, z);
-    this.floatingLetter.update(this.grid.getTile(current.row, current.column)!.letter, x, z);
+    this.floatingLetter.update(this.grid.getTile(current.row, current.column)!.letter, x, z, dt);
     this.player.rotation.y = state.player.heading;
     this.renderer.render(this.scene, this.camera);
   }
   dispose(): void {
+    this.river?.dispose();
     this.shards.dispose();
     this.outsideMaterial?.dispose();
     this.resizeObserver.disconnect();

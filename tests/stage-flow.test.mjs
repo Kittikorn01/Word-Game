@@ -69,3 +69,39 @@ for (const last of ['KEY','LIGHT','WATER','BOOK','OPEN']) test(`real reaction se
  for(let i=0;i<160;i++)tick();assert.equal(count,1);
  view.dispose();assets.dispose();
 });
+
+
+test('intro receives destination data and blocks mounting, duplicate next and start until it finishes', async () => {
+  const calls = []; let releaseIntro;
+  const destination = { ...stages[1], id: 'stage-3-test', stageNumber: 3, title: 'A Busy Little Town' };
+  const source = { ...stages[0], nextStageId: destination.id };
+  const manager = new StageManager([source, destination], source.id, stage => {
+    calls.push(`mount:${stage.id}`);
+    return { lock() { calls.push('lock'); }, unlock() { calls.push('unlock'); }, dispose() { calls.push('dispose'); } };
+  }, {
+    async fadeOut() { calls.push('out'); },
+    showIntro(stage) { assert.equal(stage, destination); calls.push('intro'); return new Promise(resolve => releaseIntro = resolve); },
+    async fadeIn() { calls.push('in'); }, dispose() {}
+  });
+  manager.start(); const next = manager.next(); await Promise.resolve();
+  assert.deepEqual(calls, [`mount:${source.id}`, 'lock', 'out', 'dispose', 'intro']);
+  assert.equal(manager.isTransitioning, true);
+  assert.equal(await manager.next(), false); manager.start();
+  assert.equal(calls.filter(call => call.startsWith('mount:')).length, 1);
+  releaseIntro(); assert.equal(await next, true);
+  assert.deepEqual(calls.slice(-3), ['lock', 'in', 'unlock']);
+  assert.equal(calls.filter(call => call === `mount:${destination.id}`).length, 1);
+  assert.equal(manager.isTransitioning, false); manager.dispose();
+});
+
+test('disposing during intro prevents destination gameplay from mounting', async () => {
+  let releaseIntro, mounts = 0;
+  const manager = new StageManager(stages, stages[0].id, () => {
+    mounts++; return { lock() {}, dispose() {} };
+  }, {
+    async fadeOut() {}, showIntro() { return new Promise(resolve => releaseIntro = resolve); },
+    async fadeIn() { assert.fail('disposed transition revealed gameplay'); }, dispose() { releaseIntro?.(); }
+  });
+  manager.start(); const next = manager.next(); await Promise.resolve();
+  manager.dispose(); assert.equal(await next, false); assert.equal(mounts, 1);
+});

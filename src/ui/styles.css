@@ -141,3 +141,30 @@ kbd { font: inherit; font-weight: 600; letter-spacing: 0.08em; }
  .assistance-hud { right: 12px; bottom: 66px; }
  .support-hud div { display: none; }
 }
+
+/* Transition-only title card; gameplay layout remains owned by the stage runtime. */
+.stage-intro {
+  --intro-ink: #34483b;
+  --intro-muted: #777359;
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; padding: 2rem;
+  text-align: center; color: var(--intro-ink);
+}
+.stage-intro[hidden] { display: none; }
+.stage-intro__number { margin: 0 0 1rem; color: var(--intro-muted); font-size: .85rem; font-weight: 700; letter-spacing: .28em; }
+.stage-intro__title { margin: 0; max-width: 22ch; font-family: Georgia, serif; font-size: clamp(1.8rem, 5vw, 3.4rem); font-weight: 500; line-height: 1.18; text-wrap: balance; }
+
+/* Shared spelling feedback: warm plate, clear type, restrained motion. */
+.word-selection {
+  --feedback-ink: #394b3e; --feedback-panel: #faf1db; --feedback-border: #99764c;
+  border: 2px solid var(--feedback-border); border-bottom-width: 4px;
+  background: var(--feedback-panel); color: var(--feedback-ink);
+  border-radius: 12px 8px 12px 8px; padding: 9px 18px;
+  box-shadow: inset 0 0 0 2px #fff9e6, 0 3px 9px #4737271c;
+}
+.word-selection__heading { font-size: 10px; font-weight: 800; letter-spacing: .14em; line-height: 1.3; margin-bottom: 5px; }
+.word-selection__word { font-family: 'Courier New', monospace; font-size: 27px; font-weight: 800; line-height: 1.12; letter-spacing: .1em; max-height: 3.5em; overflow-y: auto; }
+.word-selection[data-tone]:not([data-tone='']) { padding: 9px 18px; border-radius: 12px 8px 12px 8px; border-bottom-width: 4px; }
+.word-selection__status { margin-top: 5px; font-size: 12px; padding: 3px 7px; }
+.word-selection[data-tone='correct'] .word-selection__status { display: none; }
+@media (max-width: 600px) { .word-selection__word { font-size: 22px; } }

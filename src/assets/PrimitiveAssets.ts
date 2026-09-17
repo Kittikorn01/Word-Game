@@ -1,7 +1,10 @@
+import { createTerrainGeometry } from './createTerrainGeometry.ts';
 import * as THREE from 'three';
 // Stable domain keys; one owner disposes shared GPU resources.
 export class PrimitiveAssets {
   readonly geometry = {
+    terrain: createTerrainGeometry(),
+    bankTerrain: createTerrainGeometry(true),
     box: new THREE.BoxGeometry(1, 1, 1),
     rock: new THREE.IcosahedronGeometry(0.5, 0),
     crown: new THREE.ConeGeometry(0.9, 1.6, 7),

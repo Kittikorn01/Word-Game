@@ -35,8 +35,8 @@ export class LetterGrid {
   /** Half-open cells: minimum edge included, maximum edge excluded; gaps belong to the cell. */
   worldToGrid(position: Position): GridCoordinate | null {
     const { rows, columns, tileSize } = this.definition;
-    const column = Math.floor(position.x / tileSize + columns / 2);
-    const row = Math.floor(position.z / tileSize + rows / 2);
+    const column = Math.floor((position.x - (this.definition.origin?.x ?? 0)) / tileSize + columns / 2);
+    const row = Math.floor((position.z - (this.definition.origin?.z ?? 0)) / tileSize + rows / 2);
     return this.getTile(row, column) ? { row, column } : null;
   }
   tileAtWorld(position: Position): LetterTile | undefined {

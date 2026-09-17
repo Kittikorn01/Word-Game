@@ -1,7 +1,7 @@
 import type { StageDefinition } from '../stages/types.ts';
 
 export interface StageRuntime { lock(): void; unlock?(): void; dispose(): void }
-export interface StageTransition { fadeOut(): Promise<void>; fadeIn(): Promise<void>; dispose(): void }
+export interface StageTransition { fadeOut(): Promise<void>; fadeIn(): Promise<void>; showIntro?(stage: StageDefinition): Promise<void>; dispose(): void }
 
 /** Application lifetime; each mounted runtime owns all stage-specific state/resources. */
 export class StageManager {
@@ -23,7 +23,7 @@ export class StageManager {
     for (const stage of stages) if (stage.nextStageId && !this.registry.has(stage.nextStageId)) throw new Error('Missing next stage.');
     this.currentStageId = initialId;
   }
-  start(): void { if (!this.runtime && !this.disposed) this.runtime = this.mount(this.currentStage); }
+  start(): void { if (!this.runtime && !this.disposed && !this.transitioning) this.runtime = this.mount(this.currentStage); }
   async next(): Promise<boolean> {
     if (this.disposed || this.transitioning || !this.runtime || !this.nextStageId) return false;
     const nextId = this.nextStageId;
@@ -34,6 +34,8 @@ export class StageManager {
       if (this.disposed) return false;
       this.runtime.dispose(); this.runtime = undefined;
       this.currentStageId = nextId;
+      await this.transition.showIntro?.(this.currentStage);
+      if (this.disposed) return false;
       this.runtime = this.mount(this.currentStage);
       this.runtime.lock();
       await this.transition.fadeIn();

@@ -11,10 +11,18 @@ export function createWordSelectionOverlay(host: HTMLElement, onFeedbackFinished
   const element = document.createElement('div');
   element.className = 'word-selection'; element.hidden = true;
   element.setAttribute('role', 'status'); element.setAttribute('aria-atomic', 'true');
+  const heading = document.createElement('div'); heading.className = 'word-selection__heading';
   const word = document.createElement('div'); word.className = 'word-selection__word';
   const status = document.createElement('div'); status.className = 'word-selection__status';
-  status.hidden = true; element.append(word, status); host.append(element);
+  status.hidden = true; element.append(heading, word, status); host.append(element);
   let remaining = 0;
+  let wordAnimation: Animation | undefined;
+  const reveal = () => {
+    wordAnimation?.cancel();
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      wordAnimation = word.animate([{ opacity: .65, transform: 'scale(.96)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 140, easing: 'ease-out' });
+    }
+  };
   const clear = () => {
     const wasShowing = remaining > 0;
     remaining = 0; element.hidden = true;
@@ -24,7 +32,9 @@ export function createWordSelectionOverlay(host: HTMLElement, onFeedbackFinished
     show(result: WordResult) {
       clear();
       const style = presentation[result.status];
+      heading.textContent = result.status === 'CORRECT' ? '? WORD FOUND' : result.status === 'ALREADY_COMPLETED' ? '? ALREADY FOUND' : '? NOT NEEDED';
       word.textContent = result.word; status.textContent = style.label;
+      reveal();
       status.hidden = false; element.dataset.tone = style.tone;
       remaining = style.seconds; element.hidden = false;
     },
@@ -32,7 +42,8 @@ export function createWordSelectionOverlay(host: HTMLElement, onFeedbackFinished
       // A fresh selection takes priority over the previous result in this shared HUD.
       if (selection.isSelecting) {
         clear(); status.hidden = true; element.dataset.tone = '';
-        if (word.textContent !== selection.currentWord) word.textContent = selection.currentWord;
+        heading.textContent = 'CURRENT WORD';
+        if (word.textContent !== selection.currentWord) { word.textContent = selection.currentWord; reveal(); }
         element.hidden = !selection.currentWord;
         return;
       }
@@ -42,6 +53,6 @@ export function createWordSelectionOverlay(host: HTMLElement, onFeedbackFinished
       element.hidden = remaining <= 0;
     },
     clear,
-    dispose() { element.remove(); }
+    dispose() { wordAnimation?.cancel(); element.remove(); }
   };
 }
