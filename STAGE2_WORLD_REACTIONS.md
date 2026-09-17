@@ -1,5 +1,7 @@
 # Stage 2.5 — World Reactions & Bridge Progression
 
+> Wood/bridge visuals and completion behavior are refined in [STAGE2_VISUAL_ENDING.md](STAGE2_VISUAL_ENDING.md). The current flow automatically walks to the raised destination before Stage Complete; the Explore Forest continuation described below is historical.
+
 The tested 7×7 board, all six word paths, decoys, grid movement, selection/backtracking, Hint progression, Scan, camera, intro and Stage 1 layout are preserved. Stage 3 is not implemented. No Git commands were used.
 
 ## World reactions and progression

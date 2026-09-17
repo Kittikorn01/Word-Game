@@ -8,6 +8,7 @@ import { StageCompletionController } from '../simulation/StageCompletionControll
 import { createStageCompleteOverlay } from '../ui/StageCompleteOverlay.ts';
 import { updateQuestPresentation, refreshQuestAvailability } from '../simulation/QuestProgress.ts';
 import { createForestWorldState, ForestReactionController } from '../simulation/ForestWorldState.ts';
+import { ForestEndingController } from '../simulation/ForestEndingController.ts';
 import { createForestTraversal, isOnLetterGrid, requestStageMovement, updateStageMovement } from '../simulation/ForestTraversal.ts';
 import { createNarrativeOverlay } from '../ui/NarrativeOverlay.ts';
 import { WorldReactionController } from '../simulation/WorldReactionController.ts';
@@ -50,6 +51,8 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
   const state = createGameState(stage.playerStart, stage.grid, stage.quests);
   const forestReactions = stage.forestProgression ? new ForestReactionController(state.forest = createForestWorldState(state.words)) : undefined;
   if (stage.forestProgression) state.traversal = createForestTraversal(stage);
+  const ending = stage.forestProgression ? new ForestEndingController(stage) : undefined;
+  if (ending) state.ending = ending.state;
   const assistance = new AssistanceState(resources);
   const reactions = new WorldReactionController(state.world, stage.worldReactions);
   const input = new KeyboardInput(action => {
@@ -118,13 +121,7 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
       title: stage.title ?? stage.id,
       vocabulary: (stage.vocabulary ?? state.quests.definitions.map(q => q.targetWord)).filter(word => state.words.completedWords.includes(word)),
       hasNextStage: !!stage.nextStageId
-    }, onNext, stage.forestProgression ? () => {
-      completeUI?.dispose(); completeUI = undefined;
-      locked = false; input.clear(); selectionInput.reset();
-      host.classList.remove('stage-runtime--locked');
-      for (const element of host.querySelectorAll<HTMLElement>('[inert]')) element.inert = false;
-      view.renderer.domElement.tabIndex = -1; view.renderer.domElement.focus();
-    } : undefined);
+    }, onNext);
     onStageCompleted(id);
   });
   const abort = new AbortController();
@@ -156,7 +153,10 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
       if (updateQuestPresentation(state.quests, step)) questUI.render(state.quests, state.words);
       if (!locked && isOnLetterGrid(state) && tracker.update(state.player.currentTile)) selection.enterTile(tracker.currentPlayerTile);
       grid.update(step); feedback.update(step); accumulator -= step;
-      completion.update(step, reactions.isBusy || !!forestReactions?.isBusy || view.reactionsBusy(state), feedback.isResolving);
+      const reactionsBusy = reactions.isBusy || !!forestReactions?.isBusy || view.reactionsBusy(state);
+      if (!locked && ending?.tryStart(state, reactionsBusy || feedback.isResolving)) lock();
+      ending?.update(step);
+      completion.update(step, reactionsBusy || (!!ending && !ending.isFinished), feedback.isResolving);
     }
     renderAssistance(dt);
     wordUI.update(selection, dt);
@@ -164,7 +164,7 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
     view.render(state, dt, feedback.isResolving ? feedback.selectedTiles : selection.selectedTiles, feedback.visual, assistance, support);
   });
   return { lock, unlock() {
-    if (completeUI) return;
+    if (completeUI || ending?.inputLocked) return;
     locked = false; input.clear(); host.classList.remove('stage-runtime--locked');
     for (const element of host.querySelectorAll<HTMLElement>('[inert]')) element.inert = false;
   }, dispose() { view.renderer.setAnimationLoop(null); abort.abort(); assistance.clearScan(); assistanceUI.dispose(); supportInput.dispose(); supportUI.dispose(); completeUI?.dispose(); narrativeUI.dispose(); selectionInput.dispose(); wordUI.dispose(); questUI.dispose(); pointer.dispose(); input.dispose(); view.dispose(); ui.dispose(); host.remove(); } };

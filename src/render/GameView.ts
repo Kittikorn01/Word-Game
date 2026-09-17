@@ -101,11 +101,11 @@ export class GameView {
     const eased = t * t * (3 - 2 * t);
     const x = THREE.MathUtils.lerp(from.x, to.x, eased), z = THREE.MathUtils.lerp(from.z, to.z, eased);
     this.world?.update(state.world, dt, {x,z});
-    const route = traversalPose(state);
+    const route = state.ending?.pose ?? traversalPose(state);
     this.player.position.set(route?.x ?? x, .105 + (route?.y ?? 0), route?.z ?? z);
-    this.floatingLetter.sprite.visible = isOnLetterGrid(state);
+    this.floatingLetter.sprite.visible = !state.ending?.pose && isOnLetterGrid(state);
     this.floatingLetter.update(this.grid.getTile(current.row, current.column)!.letter, x, z, dt);
-    this.player.rotation.y = state.player.heading;
+    this.player.rotation.y = state.ending?.pose ? state.ending.heading : state.player.heading;
     this.renderer.render(this.scene, this.camera);
   }
   dispose(): void {
