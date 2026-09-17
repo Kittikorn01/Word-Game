@@ -1,5 +1,6 @@
 export class WordSelectionInput {
   private abort = new AbortController();
+  private spaceSelecting = false;
   private pointerId: number | null = null;
   private canvas: HTMLCanvasElement;
   private submit: () => void;
@@ -8,8 +9,18 @@ export class WordSelectionInput {
     submit: () => void, cancel: () => void) {
     this.canvas = canvas; this.submit = submit; this.cancel = cancel;
     const options = { signal: this.abort.signal };
+    window.addEventListener('keydown', event => {
+      if (event.code !== 'Space' || event.repeat || this.pointerId !== null || this.spaceSelecting) return;
+      const target = event.target;
+      if (target instanceof HTMLElement && (target.isContentEditable || target.closest('input,textarea,select,button'))) return;
+      if (start()) { event.preventDefault(); this.spaceSelecting = true; }
+    }, options);
+    window.addEventListener('keyup', event => {
+      if (event.code !== 'Space' || !this.spaceSelecting) return;
+      event.preventDefault(); this.spaceSelecting = false; this.submit();
+    }, options);
     canvas.addEventListener('pointerdown', event => {
-      if (event.pointerType !== 'mouse' || event.button !== 0 || this.pointerId !== null) return;
+      if (event.pointerType !== 'mouse' || event.button !== 0 || this.pointerId !== null || this.spaceSelecting) return;
       if (!start()) return;
       event.preventDefault(); this.pointerId = event.pointerId;
       try { canvas.setPointerCapture(event.pointerId); } catch { this.reset(); }
@@ -35,6 +46,9 @@ export class WordSelectionInput {
     if (this.canvas.hasPointerCapture(id)) this.canvas.releasePointerCapture(id);
     if (submitted) this.submit(); else this.cancel();
   }
-  reset(): void { this.finish(false); }
+  reset(): void {
+    if (this.spaceSelecting) { this.spaceSelecting = false; this.cancel(); }
+    this.finish(false);
+  }
   dispose(): void { this.reset(); this.abort.abort(); }
 }

@@ -33,7 +33,7 @@ export function createWordSelectionOverlay(host: HTMLElement, onFeedbackFinished
       clear();
       const style = presentation[result.status];
       heading.textContent = result.status === 'CORRECT' ? '? WORD FOUND' : result.status === 'ALREADY_COMPLETED' ? '? ALREADY FOUND' : '? NOT NEEDED';
-      word.textContent = result.word; status.textContent = style.label;
+      word.textContent = result.word; status.textContent = result.reason === 'LOCKED' ? "That word isn't needed here yet." : style.label;
       reveal();
       status.hidden = false; element.dataset.tone = style.tone;
       remaining = style.seconds; element.hidden = false;

@@ -2,7 +2,11 @@ import type { WordSubmission } from '../selection/WordSelection.ts';
 import type { WordResult, WordValidator } from '../validation/WordValidator.ts';
 
 /** Session gameplay data; never stored in UI or meshes. */
-export interface WordProgress { completedWords: readonly string[] }
+export interface WordProgress {
+  completedWords: readonly string[];
+  /** Shared read-only view of simulation-owned world gates. */
+  worldConditions?: Readonly<{ bridgeBuilt: boolean; climbRouteOpen: boolean }>;
+}
 export function createWordProgress(): WordProgress { return { completedWords: Object.freeze([]) }; }
 export function resolveWord(progress: WordProgress, submission: WordSubmission, validate: WordValidator): WordResult {
   const result = validate(submission, progress.completedWords);

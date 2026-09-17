@@ -1,3 +1,4 @@
+import type { StageDefinition } from '../stages/types.ts';
 import type { ScanState } from '../simulation/AssistanceState.ts';
 import * as THREE from 'three';
 import type { FeedbackVisual } from '../feedback/WordFeedback.ts';
@@ -19,12 +20,15 @@ export class LetterGridView {
   private raycaster = new THREE.Raycaster();
   private pointer = new THREE.Vector2();
   private color = new THREE.Color();
-  constructor(private grid: LetterGrid, assets: PrimitiveAssets, private minimumBrightness = 0) {
+  constructor(private grid: LetterGrid, assets: PrimitiveAssets, private minimumBrightness = 0, private theme?: StageDefinition['tileTheme']) {
     const size = grid.definition.tileSize;
     for (const tile of grid.tiles) {
       const root = new THREE.Group();
       root.position.set(tile.worldPosition.x, 0, tile.worldPosition.z);
-      const normal = new THREE.Color((tile.row + tile.column) % 2 ? '#e8dcc2' : '#dfd4b9');
+      const stoneTones = ['#b8b49a', '#afaf98', '#c2b69b', '#b4b39d'];
+      const normal = new THREE.Color(this.theme === 'forest-stone'
+        ? stoneTones[(tile.row * 3 + tile.column) % stoneTones.length]
+        : (tile.row + tile.column) % 2 ? '#e8dcc2' : '#dfd4b9');
       const material = new THREE.MeshStandardMaterial({ color: normal, roughness: 1, flatShading: true });
       const body = new THREE.Mesh(assets.geometry.box, material);
       body.scale.set(size - 0.055, 0.1, size - 0.055); body.position.y = 0.055;
@@ -34,13 +38,24 @@ export class LetterGridView {
       letter.rotation.x = -Math.PI / 2;
       letter.position.y = 0.108; letter.scale.setScalar(size * 0.83);
       letter.renderOrder = 2;
-      const borderMaterial = new THREE.MeshBasicMaterial({ color: '#8d612d', transparent: true, opacity: 0, depthWrite: false });
+      const borderMaterial = new THREE.MeshBasicMaterial({ color: this.theme === 'forest-stone' ? '#69745b' : '#8d612d', transparent: true, opacity: this.theme === 'forest-stone' ? .8 : 0, depthWrite: false });
       const border = new THREE.Mesh(this.borderGeometry, borderMaterial);
       border.rotation.x = -Math.PI / 2; border.position.y = .112; border.scale.setScalar(size);
       const end = new THREE.Mesh(this.borderGeometry, borderMaterial);
       end.rotation.x = -Math.PI / 2; end.position.y = .114; end.scale.setScalar(size * .87); end.visible = false;
       root.add(border, end);
-      root.add(body, letter); this.root.add(root);
+      root.add(body, letter);
+      if (this.theme === 'forest-stone') {
+        // Small edge chips use the border material; the letter's central area stays clear.
+        for (let chip = 0; chip < 2; chip++) {
+          const moss = new THREE.Mesh(this.plane, borderMaterial);
+          moss.rotation.x = -Math.PI / 2;
+          moss.scale.set(size * (.09 + chip * .04), size * .025, 1);
+          moss.position.set(size * (-.29 + chip * .12), .113, size * ((tile.row + tile.column) % 2 ? .39 : -.39));
+          root.add(moss);
+        }
+      }
+      this.root.add(root);
       // Fixed logical footprint prevents hover flicker when a tile lifts beneath a stationary pointer.
       const hitTarget = new THREE.Mesh(assets.geometry.box, material);
       hitTarget.scale.copy(body.scale);
@@ -78,10 +93,10 @@ export class LetterGridView {
       entry.root.position.y = THREE.MathUtils.lerp(entry.root.position.y, lift, blend);
       this.color.set(tone === 'wrong' ? '#e3b7ac' : tone === 'already' ? '#f4e7c5' : scanned ? '#a9d4d6' : colors[state]);
       entry.material.color.lerp(state === 'NORMAL' && !scanned ? entry.normal : this.color, blend);
-      entry.borderMaterial.opacity = THREE.MathUtils.lerp(entry.borderMaterial.opacity, selected ? 1 : 0, blend);
+      entry.borderMaterial.opacity = THREE.MathUtils.lerp(entry.borderMaterial.opacity, selected ? 1 : this.theme === 'forest-stone' ? .8 : 0, blend);
       entry.border.visible = entry.borderMaterial.opacity > .01;
       entry.end.visible = latest && !tone;
-      entry.borderMaterial.color.set(tone === 'correct' ? '#37634a' : tone === 'wrong' ? '#984d46' : tone === 'already' ? '#886328' : latest ? '#70451e' : '#a27533');
+      entry.borderMaterial.color.set(tone === 'correct' ? '#37634a' : tone === 'wrong' ? '#984d46' : tone === 'already' ? '#886328' : latest ? '#70451e' : selected ? '#a27533' : scanned ? '#377b86' : this.theme === 'forest-stone' ? '#69745b' : '#a27533');
       // Cottage floor keeps a small material fill even when room lighting is dim.
       entry.material.emissive.set(scanned ? '#79bec7' : state === 'NORMAL' && !tone ? '#e8dcc2' : '#dba03d');
       entry.material.emissiveIntensity = this.minimumBrightness + (state === 'CORRECT' ? 0.18 + pulse * 0.5 : tone ? 0.04 : state === 'SELECTED' ? 0.16 : scanned ? .12 + searchPulse * .12 : 0);

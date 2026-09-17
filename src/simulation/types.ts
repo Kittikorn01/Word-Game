@@ -3,9 +3,13 @@ import type { StageWorldState } from './WorldReactionController.ts';
 import type { GridCoordinate } from '../grid/types.ts';
 import type { WordProgress } from './WordProgress.ts';
 import type { QuestProgress } from './QuestProgress.ts';
+import type { ForestWorldState } from './ForestWorldState.ts';
+import type { ForestTraversalState } from './ForestTraversal.ts';
 export interface Position { x: number; z: number }
 export interface MoveAction { x: number; z: number }
 export interface GameState {
+  forest?: ForestWorldState;
+  traversal?: ForestTraversalState;
   exit: ExitState;
   world: StageWorldState;
   words: WordProgress;

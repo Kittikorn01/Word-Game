@@ -1,12 +1,14 @@
 import type { StageDefinition } from './types.ts';
 
-/** Environment study only; letters are temporary and there are no objectives. */
+/** Tested vocabulary board with material, crossing and climb progression. */
 export const stage2: StageDefinition = {
   id: 'stage-2-forest-path', title: 'The Broken Forest Path', stageNumber: 2,
   kind: 'playable', environment: 'forest-blockout',
+  forestProgression: true,
   grid: { rows: 7, columns: 7, tileSize: 1, origin: { x: -2.5, z: 0 } },
-  playerStart: { row: 5, column: 3 },
-  letterLayout: ['KEYXLAR', 'KEXNISO', 'WATXGNO', 'MQESHAD', 'BORXTEL', 'ZOKOPXI', 'QIFLENQ'],
+  playerStart: { row: 6, column: 3 },
+  tileTheme: 'forest-stone',
+  letterLayout: ['TREEANR', 'WALSPOR', 'OARNEAT', 'ODITNAB', 'BMVEAIR', 'LISRGDN', 'CASNELO'],
   camera: { position: [.5, 17, 12], target: [.5, 0, 0], verticalSpan: 12, minimumWidth: 19 },
   forestBlockout: {
     baseY: -1.4,
@@ -36,8 +38,18 @@ export const stage2: StageDefinition = {
       { id: 'far-ground', x: 6, z: 0, width: 4, depth: 9, top: .25, surface: 'grass' },
       { id: 'raised-area', x: 6.25, z: -2.5, width: 3.5, depth: 4, top: 1.65, surface: 'leafLight' }
     ],
-    // Reserved footprint only: never a traversable surface or a bridge mesh.
+    // Open span: paired landings/anchors sit outside this footprint, with no deck.
     futureBridge: { x: 3, z: 1.4, width: 2, depth: 1.5 }
   },
-  decorations: [], quests: [], vocabulary: []
+  decorations: [],
+  vocabulary: ['TREE', 'WOOD', 'ROPE', 'RIVER', 'BRIDGE', 'CLIMB'],
+  // Forest reactions have simulation-owned durations and world gates.
+  quests: [
+    { id: 'forest-tree', targetWord: 'TREE', clue: 'A tall plant with a trunk and branches.', worldReactionId: 'forest.tree' },
+    { id: 'forest-wood', targetWord: 'WOOD', clue: 'This material comes from trees and is used to build things.', worldReactionId: 'forest.wood' },
+    { id: 'forest-rope', targetWord: 'ROPE', clue: 'Find something strong that can tie things together.', worldReactionId: 'forest.rope' },
+    { id: 'forest-river', targetWord: 'RIVER', clue: 'Water flows through the land and blocks the path ahead.', worldReactionId: 'forest.river' },
+    { id: 'forest-bridge', targetWord: 'BRIDGE', clue: 'A structure that helps you cross from one bank to the other.', worldReactionId: 'forest.bridge', requires: ['WOOD', 'ROPE'] },
+    { id: 'forest-climb', targetWord: 'CLIMB', clue: 'The path continues above. What should you do to go higher?', worldReactionId: 'forest.climb', requires: ['BRIDGE'], requiresWorld: 'bridgeBuilt' }
+  ]
 };

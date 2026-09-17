@@ -1,4 +1,6 @@
 import { RiverView } from './RiverView.ts';
+import { ForestReactionView } from './ForestReactionView.ts';
+import { traversalPose, isOnLetterGrid } from '../simulation/ForestTraversal.ts';
 import type { SupportObjectives } from '../simulation/SupportObjectives.ts';
 import { WordShardView } from './WordShardView.ts';
 import type { AssistanceState } from '../simulation/AssistanceState.ts';
@@ -30,6 +32,7 @@ export class GameView {
   private outsideMaterial?: THREE.MeshBasicMaterial;
   private world?: WorldReactionView;
   private river?: RiverView;
+  private forest?: ForestReactionView;
   private shards: WordShardView;
   private letters: LetterGridView;
   private selectionPath = new SelectionPathView();
@@ -65,9 +68,10 @@ export class GameView {
     if (this.outsideMaterial) { ground.material = this.outsideMaterial; ground.receiveShadow = false; }
     this.scene.add(ground, createDiorama(stage, this.assets), this.player);
     if (stage.forestBlockout?.river) { this.river = new RiverView(stage.forestBlockout); this.scene.add(this.river.root); }
+    if (stage.forestProgression) { this.forest = new ForestReactionView(this.assets, stage, this.scene); this.scene.add(this.forest.root); }
     if (stage.worldObjects) { this.world = new WorldReactionView(this.assets, stage.worldObjects); this.scene.add(this.world.objects.root); }
     this.shards = new WordShardView(stage); this.scene.add(this.shards.root);
-    this.letters = new LetterGridView(grid, this.assets, this.cottageLighting ? .3 : 0); this.scene.add(this.letters.root, this.selectionPath.root, this.floatingLetter.sprite);
+    this.letters = new LetterGridView(grid, this.assets, this.cottageLighting ? .3 : 0, stage.tileTheme); this.scene.add(this.letters.root, this.selectionPath.root, this.floatingLetter.sprite);
     const resize = () => {
       const width = Math.max(1, host.clientWidth), height = Math.max(1, host.clientHeight);
       const aspect = width / height;
@@ -84,7 +88,8 @@ export class GameView {
   reactionsBusy(state: GameState): boolean { return this.world?.isBusy(state.world) ?? false; }
   render(state: GameState, dt: number, selectedTiles: readonly LetterTile[] = [], feedback?: FeedbackVisual, assistance?: AssistanceState, support?: SupportObjectives): void {
 
-    this.river?.update(dt);
+    this.river?.update(dt, state.forest?.riverRecognized ? Math.sin(state.forest.progress.river * Math.PI) : 0);
+    if (state.forest) this.forest?.update(state.forest);
     this.cottageLighting?.update(state.world.lightOn, dt);
     this.letters.update(dt, new Set(selectedTiles.map(tile => tile.id)), feedback, assistance?.scanState, selectedTiles.at(-1)?.id);
     this.shards.update(dt, support?.rewardVisual ?? null);
@@ -96,12 +101,15 @@ export class GameView {
     const eased = t * t * (3 - 2 * t);
     const x = THREE.MathUtils.lerp(from.x, to.x, eased), z = THREE.MathUtils.lerp(from.z, to.z, eased);
     this.world?.update(state.world, dt, {x,z});
-    this.player.position.set(x, 0.105, z);
+    const route = traversalPose(state);
+    this.player.position.set(route?.x ?? x, .105 + (route?.y ?? 0), route?.z ?? z);
+    this.floatingLetter.sprite.visible = isOnLetterGrid(state);
     this.floatingLetter.update(this.grid.getTile(current.row, current.column)!.letter, x, z, dt);
     this.player.rotation.y = state.player.heading;
     this.renderer.render(this.scene, this.camera);
   }
   dispose(): void {
+    this.forest?.dispose();
     this.river?.dispose();
     this.shards.dispose();
     this.outsideMaterial?.dispose();

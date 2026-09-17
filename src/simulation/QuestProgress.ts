@@ -35,14 +35,15 @@ export function createQuestProgress(definitions: readonly QuestDefinition[] = []
     visiting.delete(quest.targetWord); visited.add(quest.targetWord);
   };
   quests.forEach(visit);
-  const discoveredIds = quests.filter(q => !q.requires.length).map(q => q.id);
+  const discoveredIds = quests.filter(q => !q.requires.length && !q.requiresWorld).map(q => q.id);
   return { definitions: Object.freeze(quests), discoveredIds, presentations: [], focusedIndex: Math.max(0,quests.findIndex(q => discoveredIds.includes(q.id))), pendingAdvanceId: null };
 }
 /** Completed words are the single canonical completion ledger. */
 export function questStatus(quest: QuestDefinition, words: WordProgress): QuestStatus {
   const completed = new Set(words.completedWords.map(normalizeWord));
   if (completed.has(normalizeWord(quest.targetWord))) return 'COMPLETED';
-  return (quest.requires ?? []).every(word => completed.has(normalizeWord(word))) ? 'AVAILABLE' : 'LOCKED';
+  return (quest.requires ?? []).every(word => completed.has(normalizeWord(word))) &&
+    (!quest.requiresWorld || words.worldConditions?.[quest.requiresWorld]) ? 'AVAILABLE' : 'LOCKED';
 }
 export function navigateQuest(progress: QuestProgress, direction: -1 | 1): void {
   progress.pendingAdvanceId = null;
@@ -55,16 +56,22 @@ export function queueQuestAdvance(progress: QuestProgress, questId: string): voi
 /** Commits progress before notifying observers. Duplicate/wrong submissions emit nothing. */
 export function resolveQuestWord(progress: QuestProgress, words: WordProgress, submission: WordSubmission,
   validate: WordValidator, onQuestCompleted: (questId: string) => void = () => {}) {
-  const locked = progress.definitions.filter(q => questStatus(q, words) === 'LOCKED');
   const result = resolveWord(words, submission, validate);
   if (result.status === 'CORRECT') {
-    for (const unlocked of locked.filter(q => questStatus(q, words) === 'AVAILABLE')) {
-      progress.presentations.push({ questId: unlocked.id, remaining: 3.5 });
-    }
+    refreshQuestAvailability(progress, words);
     const quest = progress.definitions.find(item => item.targetWord === result.word);
     if (quest) { queueQuestAdvance(progress, quest.id); onQuestCompleted(quest.id); }
   }
   return result;
+}
+/** Also called after simulation reactions finish, not only after word submissions. */
+export function refreshQuestAvailability(progress: QuestProgress, words: WordProgress): void {
+  for (const quest of progress.definitions) {
+    if (questStatus(quest, words) === 'AVAILABLE' && !progress.discoveredIds.includes(quest.id) &&
+      !progress.presentations.some(p => p.questId === quest.id)) {
+      progress.presentations.push({ questId: quest.id, remaining: 3.5 });
+    }
+  }
 }
 export function finishQuestFeedback(progress: QuestProgress, words: WordProgress): void {
   const id = progress.pendingAdvanceId;

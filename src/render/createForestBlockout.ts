@@ -1,4 +1,5 @@
 import { createForestStructure } from './createForestStructure.ts';
+import { createBridgeCrossing } from './createBridgeCrossing.ts';
 import { Group } from 'three';
 import type { PrimitiveAssets } from '../assets/PrimitiveAssets.ts';
 import type { ForestBlockout } from '../stages/types.ts';
@@ -25,5 +26,6 @@ export function createForestBlockout(data: ForestBlockout, assets: PrimitiveAsse
     section.add(earth, cap); root.add(section);
   }
   root.add(createForestStructure(data, assets));
+  root.add(createBridgeCrossing(data, assets));
   return root;
 }

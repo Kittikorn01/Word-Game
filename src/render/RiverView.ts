@@ -61,15 +61,16 @@ export class RiverView {
     this.root.add(this.highlights); this.update(0);
   }
 
-  update(dt: number): void {
-    if (Number.isFinite(dt) && dt > 0) this.elapsed = (this.elapsed + dt) % (this.zone.depth / this.river.flowSpeed);
+  update(dt: number, emphasis = 0): void {
+    if (Number.isFinite(dt) && dt > 0) this.elapsed = (this.elapsed + dt * (1 + emphasis * 1.6)) % (this.zone.depth / this.river.flowSpeed);
+    (this.highlights.material as THREE.MeshBasicMaterial).opacity = .23 + emphasis * .35;
     const { zone, river } = this;
     for (let i = 0; i < this.highlights.count; i++) {
       const phase = ((i / this.highlights.count) + this.elapsed * river.flowSpeed / zone.depth) % 1;
       const envelope = Math.min(1, phase * 12, (1 - phase) * 12);
       const x = zone.x + ((i % 3) - 1) * .36;
       const z = zone.z + (phase - .5) * (zone.depth - .3);
-      this.matrix.makeScale((.22 + (i % 2) * .12) * envelope, 1, .035 * envelope);
+      this.matrix.makeScale((.22 + (i % 2) * .12) * envelope, 1, .035 * envelope * (1 + emphasis * 2));
       this.matrix.setPosition(x, river.waterLevel + .012, z);
       this.highlights.setMatrixAt(i, this.matrix);
     }

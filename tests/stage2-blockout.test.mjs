@@ -21,10 +21,10 @@ test('offset grid round trips, stays safely on main ground, and supports origina
   assert.equal(grid.worldToGrid({ x: bounds.maxX, z: 0 }), null);
   assert.deepEqual(grid.worldToGrid({ x: bounds.minX, z: bounds.minZ }), { row: 0, column: 0 });
   const state = createGameState(stage2.playerStart, stage2.grid, stage2.quests);
-  assert.deepEqual(gridToWorld(state.player.currentTile.column, state.player.currentTile.row, stage2.grid), { x: -2.5, z: 2 });
+  assert.deepEqual(gridToWorld(state.player.currentTile.column, state.player.currentTile.row, stage2.grid), { x: -2.5, z: 3 });
   assert.equal(requestMovement(state, { x: 0, z: -1 }, stage2.grid), true);
   updateMovement(state, .18);
-  assert.deepEqual(state.player.currentTile, { row: 4, column: 3 });
+  assert.deepEqual(state.player.currentTile, { row: 5, column: 3 });
 });
 
 test('river foundation and raised ground fit the unchanged camera without a crossing', () => {
@@ -38,7 +38,7 @@ test('river foundation and raised ground fit the unchanged camera without a cros
     assert.ok(river.top < 0);
     assert.ok(data.terrain.find(area => area.id === 'raised-area').top > 1);
     assert.equal(stage2.worldObjects, undefined);
-    assert.deepEqual(stage2.quests, []); assert.deepEqual(stage2.decorations, []);
+    assert.equal(stage2.quests.length, 6); assert.deepEqual(stage2.decorations, []);
     assert.equal(scene.getObjectByName('future-crossing-bank-marker'), undefined);
     for (const [width, height] of [[1440,900],[1280,720],[390,844]]) {
       const aspect = width / height, span = Math.max(stage2.camera.verticalSpan, stage2.camera.minimumWidth / aspect);

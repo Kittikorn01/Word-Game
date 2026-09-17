@@ -5,6 +5,7 @@ export interface WordResult {
   readonly status: WordStatus;
   readonly word: string;
   readonly selectedTileIds: readonly string[];
+  readonly reason?: 'LOCKED';
 }
 export type WordValidator = (submission: WordSubmission, completedWords: readonly string[]) => WordResult;
 export const normalizeWord = (word: string): string => word.trim().toUpperCase();

@@ -6,12 +6,14 @@ import { createAssistanceOverlay } from '../ui/AssistanceOverlay.ts';
 import type { StageRuntime } from './StageManager.ts';
 import { StageCompletionController } from '../simulation/StageCompletionController.ts';
 import { createStageCompleteOverlay } from '../ui/StageCompleteOverlay.ts';
-import { updateQuestPresentation } from '../simulation/QuestProgress.ts';
+import { updateQuestPresentation, refreshQuestAvailability } from '../simulation/QuestProgress.ts';
+import { createForestWorldState, ForestReactionController } from '../simulation/ForestWorldState.ts';
+import { createForestTraversal, isOnLetterGrid, requestStageMovement, updateStageMovement } from '../simulation/ForestTraversal.ts';
 import { createNarrativeOverlay } from '../ui/NarrativeOverlay.ts';
 import { WorldReactionController } from '../simulation/WorldReactionController.ts';
 import { KeyboardInput } from '../input/KeyboardInput.ts';
 import { GameView } from '../render/GameView.ts';
-import { createGameState, requestMovement, updateMovement } from '../simulation/update.ts';
+import { createGameState } from '../simulation/update.ts';
 import type { StageDefinition } from '../stages/types.ts';
 import { createOverlay } from '../ui/createOverlay.ts';
 import { LetterGrid } from '../grid/LetterGrid.ts';
@@ -46,10 +48,12 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
   try { view = new GameView(host, stage, grid); }
   catch (error) { console.error(error); ui.message('This scene needs WebGL 2. Please enable hardware acceleration or try another browser.'); return { lock() {}, dispose() { ui.dispose(); host.remove(); } }; }
   const state = createGameState(stage.playerStart, stage.grid, stage.quests);
+  const forestReactions = stage.forestProgression ? new ForestReactionController(state.forest = createForestWorldState(state.words)) : undefined;
+  if (stage.forestProgression) state.traversal = createForestTraversal(stage);
   const assistance = new AssistanceState(resources);
   const reactions = new WorldReactionController(state.world, stage.worldReactions);
   const input = new KeyboardInput(action => {
-    if (!locked && !lost && !document.hidden) requestMovement(state, action, stage.grid);
+    if (!locked && !lost && !document.hidden) requestStageMovement(state, action, stage, selection.isSelecting);
   });
   const pointer = new TilePointerInput(view.renderer.domElement, view.pickTile, id => grid.setHovered(id));
   const questUI = createQuestOverlay(host, index => {
@@ -62,13 +66,13 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
   const wordUI = createWordSelectionOverlay(host, () => {
     finishQuestFeedback(state.quests, state.words); questUI.render(state.quests, state.words);
   });
-  const validate = createQuestValidator(state.quests.definitions);
+  const validate = createQuestValidator(state.quests.definitions, state.words);
   const feedback = new WordFeedback(grid);
   const selection = new WordSelection(grid, submission => {
     if (locked || feedback.isResolving) return;
     // Finish any older visible feedback before queuing this submission's advance.
     wordUI.clear();
-    const result = resolveQuestWord(state.quests, state.words, submission, validate, id => { reactions.onQuestCompleted(id); completion.check(state.quests, state.words); onQuestCompleted(id); });
+    const result = resolveQuestWord(state.quests, state.words, submission, validate, id => { reactions.onQuestCompleted(id); forestReactions?.onQuestCompleted(id); completion.check(state.quests, state.words); onQuestCompleted(id); });
     feedback.begin(result);
     wordUI.show(result);
     questUI.render(state.quests, state.words);
@@ -76,7 +80,7 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
   });
   const tracker = new PlayerTileTracker(grid); tracker.update(state.player.currentTile);
   const selectionInput = new WordSelectionInput(view.renderer.domElement, () => {
-    if (locked || lost || document.hidden || feedback.isResolving) return false;
+    if (locked || lost || document.hidden || feedback.isResolving || !isOnLetterGrid(state)) return false;
     tracker.update(state.player.currentTile);
     return selection.start(tracker.currentPlayerTile);
   }, () => { selection.submit(); }, () => selection.cancel());
@@ -91,7 +95,7 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
   });
   const support = new SupportObjectives(resources, stage.supportObjectives);
   const supportUI = createSupportOverlay(host, support);
-  const supportBlocked = () => assistanceBlocked() || !!state.player.targetTile;
+  const supportBlocked = () => assistanceBlocked() || !!state.player.targetTile || !isOnLetterGrid(state);
   const supportInput = new ExitInput(() => {
     const reward = support.inspect(state.player.currentTile, supportBlocked());
     if (reward) assistanceUI.message(`Word Shard +${reward.reward}`);
@@ -114,7 +118,13 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
       title: stage.title ?? stage.id,
       vocabulary: (stage.vocabulary ?? state.quests.definitions.map(q => q.targetWord)).filter(word => state.words.completedWords.includes(word)),
       hasNextStage: !!stage.nextStageId
-    }, onNext);
+    }, onNext, stage.forestProgression ? () => {
+      completeUI?.dispose(); completeUI = undefined;
+      locked = false; input.clear(); selectionInput.reset();
+      host.classList.remove('stage-runtime--locked');
+      for (const element of host.querySelectorAll<HTMLElement>('[inert]')) element.inert = false;
+      view.renderer.domElement.tabIndex = -1; view.renderer.domElement.focus();
+    } : undefined);
     onStageCompleted(id);
   });
   const abort = new AbortController();
@@ -137,14 +147,16 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
     if (!locked) pointer.refresh();
     while (accumulator >= step) {
       if (!locked) {
-        updateMovement(state, step); assistance.update(step);
+        updateStageMovement(state, step); assistance.update(step);
         support.update(step);
       }
       reactions.update(step);
+      forestReactions?.update(step);
+      refreshQuestAvailability(state.quests, state.words);
       if (updateQuestPresentation(state.quests, step)) questUI.render(state.quests, state.words);
-      if (!locked && tracker.update(state.player.currentTile)) selection.enterTile(tracker.currentPlayerTile);
+      if (!locked && isOnLetterGrid(state) && tracker.update(state.player.currentTile)) selection.enterTile(tracker.currentPlayerTile);
       grid.update(step); feedback.update(step); accumulator -= step;
-      completion.update(step, reactions.isBusy || view.reactionsBusy(state), feedback.isResolving);
+      completion.update(step, reactions.isBusy || !!forestReactions?.isBusy || view.reactionsBusy(state), feedback.isResolving);
     }
     renderAssistance(dt);
     wordUI.update(selection, dt);

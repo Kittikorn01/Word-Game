@@ -28,9 +28,11 @@ export interface StageDefinition {
   exit?: ExitDefinition;
   environment?: 'cottage' | 'forest-blockout';
   forestBlockout?: ForestBlockout;
+  forestProgression?: boolean;
   camera?: { position: readonly [number, number, number]; target: readonly [number, number, number]; verticalSpan: number; minimumWidth: number };
   worldReactions?: WorldReactionMap;
   worldObjects?: Readonly<Record<'key' | 'lamp' | 'plant' | 'book' | 'door', Position>>;
+  tileTheme?: 'forest-stone';
   grid: GridDefinition;
   supportObjectives?: readonly SupportObjectiveDefinition[];
   wordShardSpawns?: readonly { id: string; row: number; column: number }[];

@@ -22,7 +22,7 @@ for (const last of ['KEY','LIGHT','WATER','BOOK','OPEN']) test(`completion waits
   assert.deepEqual(events,[stage.id]);
 });
 test('empty placeholder does not complete',()=>{
- const s=stages[1], state=createGameState(s.playerStart,s.grid,s.quests);
+ const s=stages[1], state=createGameState(s.playerStart,s.grid,[]);
  const c=new StageCompletionController(s.id,()=>assert.fail('empty stage completed'));
  c.check(state.quests,state.words); c.update(10,false,false);
 });
@@ -40,7 +40,7 @@ test('transition locks, fades, disposes old state, mounts fresh state once, then
  release();assert.equal(await first,true);
  assert.deepEqual(calls,[stages[0].id,'lock','out','dispose',stages[1].id,'lock','in']);
  assert.equal(manager.currentStageId,stages[1].id);assert.equal(states.length,2);
- assert.deepEqual(states[1].words.completedWords,[]);assert.deepEqual(states[1].quests.definitions,[]);assert.equal(states[1].world.keySpawned,false);
+ assert.deepEqual(states[1].words.completedWords,[]);assert.equal(states[1].quests.definitions.length,6);assert.equal(states[1].world.keySpawned,false);
  assert.equal(await manager.next(),false);manager.dispose();
 });
 test('disposing during fade prevents mounting a new stage',async()=>{
