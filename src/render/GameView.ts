@@ -88,7 +88,7 @@ export class GameView {
   reactionsBusy(state: GameState): boolean { return this.world?.isBusy(state.world) ?? false; }
   render(state: GameState, dt: number, selectedTiles: readonly LetterTile[] = [], feedback?: FeedbackVisual, assistance?: AssistanceState, support?: SupportObjectives): void {
 
-    this.river?.update(dt, state.forest?.riverRecognized ? Math.sin(state.forest.progress.river * Math.PI) : 0);
+    this.river?.update(dt, state.forest);
     if (state.forest) this.forest?.update(state.forest);
     this.cottageLighting?.update(state.world.lightOn, dt);
     this.letters.update(dt, new Set(selectedTiles.map(tile => tile.id)), feedback, assistance?.scanState, selectedTiles.at(-1)?.id);

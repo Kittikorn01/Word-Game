@@ -16,7 +16,7 @@ test('river stays inside reserved zone, below land and clear of the letter grid'
     assert.ok(Math.abs(waterBounds.max.y - stage2.forestBlockout.river.waterLevel) < 1e-6);
     assert.ok(waterBounds.max.y < 0 && waterBounds.min.y >= -.851);
     assert.ok(bounds.min.x > stage2.grid.origin.x + stage2.grid.columns / 2);
-    assert.equal(view.root.children.length, 4);
+    assert.equal(view.root.getObjectByName('river-recognition-ripples').visible, false);
     assert.equal(water.material.transparent, false);
   } finally { view.dispose(); }
 });

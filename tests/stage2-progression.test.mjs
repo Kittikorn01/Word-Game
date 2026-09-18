@@ -134,8 +134,22 @@ test('bridge and root route nodes have visible supporting surfaces; new geometry
 test('RIVER emphasis changes currents temporarily without affecting movement; Stage 1 remains grid-only',()=>{
  const river=new RiverView(stage2.forestBlockout);
  try {
-  const flow=river.root.getObjectByName('river-flow-highlights');river.update(.5,1);assert.ok(flow.material.opacity>.5);
-  river.update(.5,0);assert.equal(flow.material.opacity,.23);
+  const forest=createForestWorldState(createGameState(stage2.playerStart,stage2.grid,stage2.quests).words);
+  const reactions=new ForestReactionController(forest);
+  const flow=river.root.getObjectByName('river-flow-highlights');
+  const ripples=river.root.getObjectByName('river-recognition-ripples');
+  const water=river.root.getObjectByName('river-water');
+  const baseColor=water.material.color.clone();
+  reactions.onQuestCompleted('forest-river');reactions.update(1.25);river.update(1.25,forest);
+  assert.ok(flow.material.opacity>.5);assert.equal(ripples.visible,true);
+  assert.ok(water.material.color.r>baseColor.r);
+  assert.deepEqual(forest.conditions,{bridgeBuilt:false,climbRouteOpen:false});
+  reactions.update(1.25);river.update(1.25,forest);
+  assert.equal(ripples.visible,false);assert.ok(flow.material.opacity>.23 && flow.material.opacity<.4);
+  const settledColor=water.material.color.clone(), settledOpacity=flow.material.opacity;
+  reactions.onQuestCompleted('forest-river');reactions.update(.5);river.update(.5,forest);
+  assert.equal(forest.progress.river,1);assert.equal(ripples.visible,false);
+  assert.equal(flow.material.opacity,settledOpacity);assert.ok(water.material.color.equals(settledColor));
   const s=createGameState(stage1.playerStart,stage1.grid,stage1.quests);s.player.currentTile={row:4,column:6};
   assert.equal(requestStageMovement(s,direction.east,stage1),false);assert.equal(s.forest,undefined);
  } finally {river.dispose();}
