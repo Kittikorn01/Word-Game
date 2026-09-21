@@ -37,6 +37,7 @@ export const stage3: StageDefinition = {
   // Temporary synthetic letters, no final vocabulary or reactions.
   letterLayout: ['AEINORU', 'NURAEIX', 'IXONURA', 'RAEIXON', 'ONURAEI', 'EIXONUR', 'URAEIXO'],
   vocabulary: [], quests: [], decorations: [], tileTheme: 'town-stone',
-  camera: { position: [0, 17, 11.3], target: [0, 0, -.7], verticalSpan: 13, minimumWidth: 14 },
+  // Translate camera and target together: a small upward framing shift, no tilt or zoom.
+  camera: { position: [0, 17, 11.7], target: [0, 0, -.3], verticalSpan: 13, minimumWidth: 14 },
   townBlockout: town
 };

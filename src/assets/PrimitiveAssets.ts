@@ -30,9 +30,15 @@ export class PrimitiveAssets {
     body: new THREE.CylinderGeometry(0.19, 0.27, 0.46, 8)
   };
   readonly material = {
-    townTeal: this.make('#628d82'), townInk: this.make('#514d43'), townMail: this.make('#718eaa'),
+    townTeal: this.make('#5c837b'), townInk: this.make('#514d43'), townMail: this.make('#718eaa'),
+    // Town-only surfaces separate the plaza from architecture without changing other stages.
+    // Slight cool compensation reads as warm gray under the town's warm sunlight.
+    townGround: this.make('#b6bec8'), townJoint: this.make('#a7afb8'),
+    townPlazaBorder: this.make('#999fa5'),
+    townBakeryWall: this.make('#d5b6a0'), townShopWall: this.make('#c4cbb5'),
+    townTowerStone: this.make('#aaa899'),
     townStone: this.make('#c4b29b'), townPaving: this.make('#b4a38d'),
-    townCream: this.make('#e5d3b5'), townRoof: this.make('#ad7766'),
+    townCream: this.make('#e5d3b5'), townRoof: this.make('#a77363'),
     townRoute: this.make('#d6c3a3'), townGreen: this.make('#98a78c'),
     cottageWood: this.make('#795940'), cottageFloor: this.make('#b89b78'),
     plaster: this.make('#e2d5b9'), fabric: this.make('#758b7c'), windowSky: this.make('#b3c8d8'),
