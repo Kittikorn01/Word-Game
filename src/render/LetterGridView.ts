@@ -26,11 +26,12 @@ export class LetterGridView {
       const root = new THREE.Group();
       root.position.set(tile.worldPosition.x, 0, tile.worldPosition.z);
       const stoneTones = ['#b8b49a', '#afaf98', '#c2b69b', '#b4b39d'];
+      const townTones = ['#d4c4aa', '#cebea6', '#ddcdb3', '#d5c6b0'];
       const normal = new THREE.Color(this.theme === 'forest-stone'
         ? stoneTones[(tile.row * 3 + tile.column) % stoneTones.length]
-        : (tile.row + tile.column) % 2 ? '#e8dcc2' : '#dfd4b9');
+        : this.theme === 'town-stone' ? townTones[(tile.row * 3 + tile.column) % 4] : (tile.row + tile.column) % 2 ? '#e8dcc2' : '#dfd4b9');
       const material = new THREE.MeshStandardMaterial({ color: normal, roughness: 1, flatShading: true });
-      const body = new THREE.Mesh(assets.geometry.box, material);
+      const body = new THREE.Mesh(this.theme === 'town-stone' ? assets.geometry.townSlab : assets.geometry.box, material);
       body.scale.set(size - 0.055, 0.1, size - 0.055); body.position.y = 0.055;
       body.castShadow = true; body.receiveShadow = true;
       body.userData.tileId = tile.id;
@@ -38,7 +39,7 @@ export class LetterGridView {
       letter.rotation.x = -Math.PI / 2;
       letter.position.y = 0.108; letter.scale.setScalar(size * 0.83);
       letter.renderOrder = 2;
-      const borderMaterial = new THREE.MeshBasicMaterial({ color: this.theme === 'forest-stone' ? '#69745b' : '#8d612d', transparent: true, opacity: this.theme === 'forest-stone' ? .8 : 0, depthWrite: false });
+      const borderMaterial = new THREE.MeshBasicMaterial({ color: this.theme === 'town-stone' ? '#887b69' : this.theme === 'forest-stone' ? '#69745b' : '#8d612d', transparent: true, opacity: this.theme === 'town-stone' ? .45 : this.theme === 'forest-stone' ? .8 : 0, depthWrite: false });
       const border = new THREE.Mesh(this.borderGeometry, borderMaterial);
       border.rotation.x = -Math.PI / 2; border.position.y = .112; border.scale.setScalar(size);
       const end = new THREE.Mesh(this.borderGeometry, borderMaterial);
@@ -93,10 +94,10 @@ export class LetterGridView {
       entry.root.position.y = THREE.MathUtils.lerp(entry.root.position.y, lift, blend);
       this.color.set(tone === 'wrong' ? '#e3b7ac' : tone === 'already' ? '#f4e7c5' : scanned ? '#a9d4d6' : colors[state]);
       entry.material.color.lerp(state === 'NORMAL' && !scanned ? entry.normal : this.color, blend);
-      entry.borderMaterial.opacity = THREE.MathUtils.lerp(entry.borderMaterial.opacity, selected ? 1 : this.theme === 'forest-stone' ? .8 : 0, blend);
+      entry.borderMaterial.opacity = THREE.MathUtils.lerp(entry.borderMaterial.opacity, selected ? 1 : this.theme === 'town-stone' ? .45 : this.theme === 'forest-stone' ? .8 : 0, blend);
       entry.border.visible = entry.borderMaterial.opacity > .01;
       entry.end.visible = latest && !tone;
-      entry.borderMaterial.color.set(tone === 'correct' ? '#37634a' : tone === 'wrong' ? '#984d46' : tone === 'already' ? '#886328' : latest ? '#70451e' : selected ? '#a27533' : scanned ? '#377b86' : this.theme === 'forest-stone' ? '#69745b' : '#a27533');
+      entry.borderMaterial.color.set(tone === 'correct' ? '#37634a' : tone === 'wrong' ? '#984d46' : tone === 'already' ? '#886328' : latest ? '#70451e' : selected ? '#a27533' : scanned ? '#377b86' : this.theme === 'town-stone' ? '#887b69' : this.theme === 'forest-stone' ? '#69745b' : '#a27533');
       // Cottage floor keeps a small material fill even when room lighting is dim.
       entry.material.emissive.set(scanned ? '#79bec7' : state === 'NORMAL' && !tone ? '#e8dcc2' : '#dba03d');
       entry.material.emissiveIntensity = this.minimumBrightness + (state === 'CORRECT' ? 0.18 + pulse * 0.5 : tone ? 0.04 : state === 'SELECTED' ? 0.16 : scanned ? .12 + searchPulse * .12 : 0);

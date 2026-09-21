@@ -81,7 +81,7 @@ test('start is a decoy; diagonals rejected; forest reactions preserve the tested
  assert.deepEqual(g.tiles.map(t=>t.letter),layout); assert.equal(reactions.isBusy,false);
  assert.equal(reactions.state.conditions.climbRouteOpen,true);
  s.player.currentTile={row:3,column:6}; assert.equal(requestMovement(s,{x:1,z:0},stage2.grid),false);
- assert.equal(stage2.nextStageId,undefined); assert.equal(stage2.worldObjects,undefined);
+ assert.equal(stage2.nextStageId,'stage-3-busy-little-town'); assert.equal(stage2.worldObjects,undefined);
 });
 
 import { WordSelectionInput } from '../src/input/WordSelectionInput.ts';
@@ -101,3 +101,4 @@ test('Space and mouse hold/release submit once, exclude each other, cancel on bl
   input.dispose(); key('keydown'); mouse(canvas,'pointerdown'); assert.equal(starts,3);
  } finally { input.dispose(); delete globalThis.window; delete globalThis.document; delete globalThis.HTMLElement; }
 });
+

@@ -4,6 +4,7 @@ import type { StageDefinition } from './types.ts';
 export const stage2: StageDefinition = {
   id: 'stage-2-forest-path', title: 'The Broken Forest Path', stageNumber: 2,
   kind: 'playable', environment: 'forest-blockout',
+  nextStageId: 'stage-3-busy-little-town',
   forestProgression: true,
   grid: { rows: 7, columns: 7, tileSize: 1, origin: { x: -2.5, z: 0 } },
   playerStart: { row: 6, column: 3 },

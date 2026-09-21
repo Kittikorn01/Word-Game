@@ -1,9 +1,11 @@
 import { createForestBlockout } from './createForestBlockout.ts';
+import { createTownBlockout } from './createTownBlockout.ts';
 import { createCottage } from './createCottage.ts';
 import { Group } from 'three';
 import type { PrimitiveAssets } from '../assets/PrimitiveAssets.ts';
 import type { StageDefinition } from '../stages/types.ts';
 export function createDiorama(stage: StageDefinition, assets: PrimitiveAssets): Group {
+  if (stage.environment === 'town-blockout' && stage.townBlockout) return createTownBlockout(stage.townBlockout, assets);
   if (stage.environment === 'forest-blockout' && stage.forestBlockout) return createForestBlockout(stage.forestBlockout, assets);
   if (stage.environment === 'cottage') return createCottage(stage, assets);
   const root = new Group();

@@ -41,7 +41,7 @@ test('transition locks, fades, disposes old state, mounts fresh state once, then
  assert.deepEqual(calls,[stages[0].id,'lock','out','dispose',stages[1].id,'lock','in']);
  assert.equal(manager.currentStageId,stages[1].id);assert.equal(states.length,2);
  assert.deepEqual(states[1].words.completedWords,[]);assert.equal(states[1].quests.definitions.length,6);assert.equal(states[1].world.keySpawned,false);
- assert.equal(await manager.next(),false);manager.dispose();
+ assert.equal(manager.nextStageId,stages[2].id);manager.dispose();
 });
 test('disposing during fade prevents mounting a new stage',async()=>{
  let release,mounts=0;
@@ -73,7 +73,7 @@ for (const last of ['KEY','LIGHT','WATER','BOOK','OPEN']) test(`real reaction se
 
 test('intro receives destination data and blocks mounting, duplicate next and start until it finishes', async () => {
   const calls = []; let releaseIntro;
-  const destination = { ...stages[1], id: 'stage-3-test', stageNumber: 3, title: 'A Busy Little Town' };
+  const destination = { ...stages[1], nextStageId: undefined, id: 'stage-3-test', stageNumber: 3, title: 'A Busy Little Town' };
   const source = { ...stages[0], nextStageId: destination.id };
   const manager = new StageManager([source, destination], source.id, stage => {
     calls.push(`mount:${stage.id}`);
@@ -105,3 +105,5 @@ test('disposing during intro prevents destination gameplay from mounting', async
   manager.start(); const next = manager.next(); await Promise.resolve();
   manager.dispose(); assert.equal(await next, false); assert.equal(mounts, 1);
 });
+
+

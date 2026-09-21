@@ -56,7 +56,9 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
   const assistance = new AssistanceState(resources);
   const reactions = new WorldReactionController(state.world, stage.worldReactions);
   const input = new KeyboardInput(action => {
-    if (!locked && !lost && !document.hidden) requestStageMovement(state, action, stage, selection.isSelecting);
+    if (!locked && !lost && !document.hidden) {
+      requestStageMovement(state, action, stage, selection.isSelecting);
+    }
   });
   const pointer = new TilePointerInput(view.renderer.domElement, view.pickTile, id => grid.setHovered(id));
   const questUI = createQuestOverlay(host, index => {
@@ -141,7 +143,6 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
     const dt = lastTime ? Math.min((time - lastTime) / 1000, 0.1) : 0;
     accumulator += dt;
     lastTime = time;
-    if (!locked) pointer.refresh();
     while (accumulator >= step) {
       if (!locked) {
         updateStageMovement(state, step); assistance.update(step);
@@ -162,6 +163,7 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
     wordUI.update(selection, dt);
     narrativeUI.update(state.quests);
     view.render(state, dt, feedback.isResolving ? feedback.selectedTiles : selection.selectedTiles, feedback.visual, assistance, support);
+    if (!locked) pointer.refresh();
   });
   return { lock, unlock() {
     if (completeUI || ending?.inputLocked) return;

@@ -19,6 +19,20 @@ export interface ForestBlockout {
   baseY: number;
   futureBridge: { x: number; z: number; width: number; depth: number };
 }
+export interface TownFootprint { x: number; z: number; width: number; depth: number }
+export interface TownBlockout {
+  platform: TownFootprint & { thickness: number };
+  square: TownFootprint;
+  zones: readonly (TownFootprint & {
+    id: 'bakery' | 'shop' | 'mail' | 'clock' | 'delivery'; height: number;
+    mass: TownFootprint;
+    forecourt: TownFootprint;
+    facing: 'south' | 'east' | 'west';
+  })[];
+  paths: readonly (TownFootprint & { id: string })[];
+  gardens: readonly TownFootprint[];
+  carryRoute: readonly TownFootprint[];
+}
 export interface StageDefinition {
   id: string;
   title?: string;
@@ -26,13 +40,14 @@ export interface StageDefinition {
   kind?: 'playable' | 'placeholder';
   nextStageId?: string;
   exit?: ExitDefinition;
-  environment?: 'cottage' | 'forest-blockout';
+  environment?: 'cottage' | 'forest-blockout' | 'town-blockout';
+  townBlockout?: TownBlockout;
   forestBlockout?: ForestBlockout;
   forestProgression?: boolean;
   camera?: { position: readonly [number, number, number]; target: readonly [number, number, number]; verticalSpan: number; minimumWidth: number };
   worldReactions?: WorldReactionMap;
   worldObjects?: Readonly<Record<'key' | 'lamp' | 'plant' | 'book' | 'door', Position>>;
-  tileTheme?: 'forest-stone';
+  tileTheme?: 'forest-stone' | 'town-stone';
   grid: GridDefinition;
   supportObjectives?: readonly SupportObjectiveDefinition[];
   wordShardSpawns?: readonly { id: string; row: number; column: number }[];

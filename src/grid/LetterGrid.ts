@@ -10,12 +10,13 @@ export function areAdjacent(a: GridCoordinate, b: GridCoordinate): boolean {
 export class LetterGrid {
   readonly tiles: readonly LetterTile[];
   hoveredTileId: string | null = null;
+  private byCoordinate = new Map<string, LetterTile>();
   private byId = new Map<string, LetterTile>();
   readonly definition: Readonly<GridDefinition>;
   constructor(stageId: string, definition: GridDefinition, layout: readonly string[]) {
     const { rows, columns, tileSize } = definition;
     if (!Number.isInteger(rows) || rows < 1 || !Number.isInteger(columns) || columns < 1 || !Number.isFinite(tileSize) || tileSize <= 0 ||
-      layout.length !== rows || layout.some(row => row.length !== columns || !/^[A-Z]+$/.test(row))) {
+      layout.length !== rows || layout.some(row => row.length !== columns || !(/^[A-Z]+$/).test(row))) {
       throw new Error('Letter grid requires positive dimensions and a matching uppercase A-Z layout.');
     }
     this.definition = Object.freeze({ ...definition });
@@ -24,13 +25,13 @@ export class LetterGrid {
       worldPosition: { ...gridToWorld(column, row, definition), y: 0.105 },
       state: 'NORMAL', correctRemaining: 0
     })));
-    this.tiles.forEach(tile => this.byId.set(tile.id, tile));
+    this.tiles.forEach(tile => { this.byId.set(tile.id, tile); this.byCoordinate.set(`${tile.row}:${tile.column}`, tile); });
   }
   findLetter(letter: string): readonly LetterTile[] { return this.tiles.filter(tile => tile.letter === letter); }
   getById(id: string | null): LetterTile | undefined { return id === null ? undefined : this.byId.get(id); }
   getTile(row: number, column: number): LetterTile | undefined {
     if (!Number.isInteger(row) || !Number.isInteger(column) || row < 0 || column < 0 || row >= this.definition.rows || column >= this.definition.columns) return;
-    return this.tiles[row * this.definition.columns + column];
+    return this.byCoordinate.get(`${row}:${column}`);
   }
   /** Half-open cells: minimum edge included, maximum edge excluded; gaps belong to the cell. */
   worldToGrid(position: Position): GridCoordinate | null {

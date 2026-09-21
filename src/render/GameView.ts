@@ -62,6 +62,10 @@ export class GameView {
     sun.position.set(-5, 12, 7); sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024);
     Object.assign(sun.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: 0.5, far: 35 });
+    if (stage.townBlockout) {
+      sun.position.set(-10, 25, 15); sun.shadow.mapSize.set(2048, 2048);
+      Object.assign(sun.shadow.camera, { left: -11, right: 11, top: 11, bottom: -11, near: .5, far: 70 });
+    }
     sun.shadow.normalBias = 0.04; this.scene.add(sun);
     }
     const ground = this.assets.mesh('box', 'ground'); ground.scale.set(200, 0.1, 200); ground.position.y = stage.forestBlockout ? stage.forestBlockout.baseY - .06 : -0.87; ground.castShadow = false;
@@ -80,7 +84,8 @@ export class GameView {
         : Math.max(stage.grid.rows * stage.grid.tileSize + 6, (stage.grid.columns * stage.grid.tileSize + 5) / aspect);
       this.camera.left = -verticalSpan * aspect / 2; this.camera.right = verticalSpan * aspect / 2;
       this.camera.top = verticalSpan / 2; this.camera.bottom = -verticalSpan / 2;
-      this.camera.updateProjectionMatrix(); this.renderer.setSize(width, height);
+      this.camera.updateProjectionMatrix();
+      this.renderer.setSize(width, height);
     };
     this.resizeObserver = new ResizeObserver(resize); this.resizeObserver.observe(host); resize();
   }
@@ -103,8 +108,9 @@ export class GameView {
     this.world?.update(state.world, dt, {x,z});
     const route = state.ending?.pose ?? traversalPose(state);
     this.player.position.set(route?.x ?? x, .105 + (route?.y ?? 0), route?.z ?? z);
-    this.floatingLetter.sprite.visible = !state.ending?.pose && isOnLetterGrid(state);
-    this.floatingLetter.update(this.grid.getTile(current.row, current.column)!.letter, x, z, dt);
+    const currentLetter = this.grid.getTile(current.row, current.column);
+    this.floatingLetter.sprite.visible = !!currentLetter && !state.ending?.pose && isOnLetterGrid(state);
+    if (currentLetter) this.floatingLetter.update(currentLetter.letter, x, z, dt);
     this.player.rotation.y = state.ending?.pose ? state.ending.heading : state.player.heading;
     this.renderer.render(this.scene, this.camera);
   }
