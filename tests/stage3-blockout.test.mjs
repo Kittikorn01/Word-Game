@@ -6,7 +6,7 @@ import { StageManager } from '../src/app/StageManager.ts';
 import { createGameState } from '../src/simulation/update.ts';
 import { StageCompletionController } from '../src/simulation/StageCompletionController.ts';
 
-test('Stage 2 uses the existing intro flow to mount the empty Stage 3 runtime', async () => {
+test('Stage 2 uses the existing intro flow to mount the Stage 3 vocabulary runtime', async () => {
   const events = [];
   const manager = new StageManager(stages, stages[1].id, stage => {
     events.push(stage.id); return { lock() {}, unlock() {}, dispose() {} };
@@ -19,8 +19,10 @@ test('Stage 2 uses the existing intro flow to mount the empty Stage 3 runtime', 
   const state = createGameState(stage3.playerStart, stage3.grid, stage3.quests);
   const completion = new StageCompletionController(stage3.id, () => assert.fail('blockout completed'));
   completion.check(state.quests, state.words); completion.update(100, false, false);
-  assert.deepEqual(stage3.quests, []); assert.deepEqual(stage3.vocabulary, []);
+  assert.equal(state.quests.discoveredIds.length, 4);
+  assert.equal(stage3.vocabulary.length, 6);
   assert.equal(stage3.worldObjects, undefined); assert.equal(stage3.worldReactions, undefined);
   assert.equal(stage3.forestProgression, undefined);
 });
+
 

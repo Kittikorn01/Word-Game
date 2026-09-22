@@ -32,11 +32,24 @@ const town: TownBlockout = {
 export const stage3: StageDefinition = {
   id: 'stage-3-busy-little-town', stageNumber: 3, title: 'A Busy Little Town',
   kind: 'playable', environment: 'town-blockout',
+  townProgression: true,
   grid: { rows: 7, columns: 7, tileSize: 1, origin: { x: 0, z: 1 } },
   playerStart: { row: 6, column: 3 },
-  // Temporary synthetic letters, no final vocabulary or reactions.
-  letterLayout: ['AEINORU', 'NURAEIX', 'IXONURA', 'RAEIXON', 'ONURAEI', 'EIXONUR', 'URAEIXO'],
-  vocabulary: [], quests: [], decorations: [], tileTheme: 'town-stone',
+  // Authored orthogonal paths and decoys; see STAGE3_VOCABULARY.md.
+  letterLayout: ['BRACLEC', 'NEADORO', 'RAEOCKI', 'LOHSCAN', 'LPEACAT', 'ETRNERR', 'OTENLOY'],
+  vocabulary: ['BREAD', 'COIN', 'SHOP', 'LETTER', 'CLOCK', 'CARRY'],
+  // Existing quest dependencies drive availability and NEW QUEST presentation.
+  // Hints derive progressive prefixes from targetWord using the existing system.
+  // Stage-local simulation owns reaction progress; the renderer only projects it.
+  quests: [
+    { id: 'town-bread', targetWord: 'BREAD', clue: 'Find something baked that people eat.', worldReactionId: 'town.bread' },
+    { id: 'town-coin', targetWord: 'COIN', clue: 'Find a small piece of money.', worldReactionId: 'town.coin' },
+    { id: 'town-shop', targetWord: 'SHOP', clue: 'Find a place where people buy things.', worldReactionId: 'town.shop', requires: ['BREAD', 'COIN'] },
+    { id: 'town-letter', targetWord: 'LETTER', clue: 'Find something you can write and send to someone.', worldReactionId: 'town.letter' },
+    { id: 'town-clock', targetWord: 'CLOCK', clue: 'Find something that tells you the time.', worldReactionId: 'town.clock' },
+    { id: 'town-carry', targetWord: 'CARRY', clue: 'You have something to deliver. What should you do with it?', worldReactionId: 'town.carry', requires: ['SHOP', 'LETTER'] }
+  ],
+  decorations: [], tileTheme: 'town-stone',
   // Translate camera and target together: a small upward framing shift, no tilt or zoom.
   camera: { position: [0, 17, 11.7], target: [0, 0, -.3], verticalSpan: 13, minimumWidth: 14 },
   townBlockout: town

@@ -44,6 +44,7 @@ export interface StageDefinition {
   townBlockout?: TownBlockout;
   forestBlockout?: ForestBlockout;
   forestProgression?: boolean;
+  townProgression?: boolean;
   camera?: { position: readonly [number, number, number]; target: readonly [number, number, number]; verticalSpan: number; minimumWidth: number };
   worldReactions?: WorldReactionMap;
   worldObjects?: Readonly<Record<'key' | 'lamp' | 'plant' | 'book' | 'door', Position>>;

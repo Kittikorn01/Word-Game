@@ -6,9 +6,13 @@ import type { QuestProgress } from './QuestProgress.ts';
 import type { ForestWorldState } from './ForestWorldState.ts';
 import type { ForestTraversalState } from './ForestTraversal.ts';
 import type { ForestEndingState } from './ForestEndingController.ts';
+import type { TownWorldState } from './TownWorldState.ts';
+import type { TownEndingState } from './TownEndingController.ts';
 export interface Position { x: number; z: number }
 export interface MoveAction { x: number; z: number }
 export interface GameState {
+  town?: TownWorldState;
+  townEnding?: TownEndingState;
   forest?: ForestWorldState;
   traversal?: ForestTraversalState;
   ending?: ForestEndingState;

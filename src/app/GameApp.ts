@@ -9,6 +9,8 @@ import { createStageCompleteOverlay } from '../ui/StageCompleteOverlay.ts';
 import { updateQuestPresentation, refreshQuestAvailability } from '../simulation/QuestProgress.ts';
 import { createForestWorldState, ForestReactionController } from '../simulation/ForestWorldState.ts';
 import { ForestEndingController } from '../simulation/ForestEndingController.ts';
+import { createTownWorldState, TownReactionController } from '../simulation/TownWorldState.ts';
+import { TownEndingController } from '../simulation/TownEndingController.ts';
 import { createForestTraversal, isOnLetterGrid, requestStageMovement, updateStageMovement } from '../simulation/ForestTraversal.ts';
 import { createNarrativeOverlay } from '../ui/NarrativeOverlay.ts';
 import { WorldReactionController } from '../simulation/WorldReactionController.ts';
@@ -53,6 +55,9 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
   if (stage.forestProgression) state.traversal = createForestTraversal(stage);
   const ending = stage.forestProgression ? new ForestEndingController(stage) : undefined;
   if (ending) state.ending = ending.state;
+  const townReactions = stage.townProgression ? new TownReactionController(state.town = createTownWorldState()) : undefined;
+  const townEnding = stage.townProgression ? new TownEndingController(stage) : undefined;
+  if (townEnding) state.townEnding = townEnding.state;
   const assistance = new AssistanceState(resources);
   const reactions = new WorldReactionController(state.world, stage.worldReactions);
   const input = new KeyboardInput(action => {
@@ -77,7 +82,7 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
     if (locked || feedback.isResolving) return;
     // Finish any older visible feedback before queuing this submission's advance.
     wordUI.clear();
-    const result = resolveQuestWord(state.quests, state.words, submission, validate, id => { reactions.onQuestCompleted(id); forestReactions?.onQuestCompleted(id); completion.check(state.quests, state.words); onQuestCompleted(id); });
+    const result = resolveQuestWord(state.quests, state.words, submission, validate, id => { reactions.onQuestCompleted(id); forestReactions?.onQuestCompleted(id); townReactions?.onQuestCompleted(id); completion.check(state.quests, state.words); onQuestCompleted(id); });
     feedback.begin(result);
     wordUI.show(result);
     questUI.render(state.quests, state.words);
@@ -150,14 +155,17 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
       }
       reactions.update(step);
       forestReactions?.update(step);
+      townReactions?.update(step);
       refreshQuestAvailability(state.quests, state.words);
       if (updateQuestPresentation(state.quests, step)) questUI.render(state.quests, state.words);
       if (!locked && isOnLetterGrid(state) && tracker.update(state.player.currentTile)) selection.enterTile(tracker.currentPlayerTile);
       grid.update(step); feedback.update(step); accumulator -= step;
-      const reactionsBusy = reactions.isBusy || !!forestReactions?.isBusy || view.reactionsBusy(state);
+      const reactionsBusy = reactions.isBusy || !!forestReactions?.isBusy || !!townReactions?.isBusy || view.reactionsBusy(state);
       if (!locked && ending?.tryStart(state, reactionsBusy || feedback.isResolving)) lock();
+      if (!locked && townEnding?.tryStart(state, reactionsBusy || feedback.isResolving)) lock();
       ending?.update(step);
-      completion.update(step, reactionsBusy || (!!ending && !ending.isFinished), feedback.isResolving);
+      townEnding?.update(step, state);
+      completion.update(step, reactionsBusy || (!!ending && !ending.isFinished) || (!!townEnding && !townEnding.isFinished), feedback.isResolving);
     }
     renderAssistance(dt);
     wordUI.update(selection, dt);
@@ -166,7 +174,7 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
     if (!locked) pointer.refresh();
   });
   return { lock, unlock() {
-    if (completeUI || ending?.inputLocked) return;
+    if (completeUI || ending?.inputLocked || townEnding?.inputLocked) return;
     locked = false; input.clear(); host.classList.remove('stage-runtime--locked');
     for (const element of host.querySelectorAll<HTMLElement>('[inert]')) element.inert = false;
   }, dispose() { view.renderer.setAnimationLoop(null); abort.abort(); assistance.clearScan(); assistanceUI.dispose(); supportInput.dispose(); supportUI.dispose(); completeUI?.dispose(); narrativeUI.dispose(); selectionInput.dispose(); wordUI.dispose(); questUI.dispose(); pointer.dispose(); input.dispose(); view.dispose(); ui.dispose(); host.remove(); } };
