@@ -1,0 +1,7 @@
+Live keyboard playtest: PASS
+Wrong and duplicate submissions: PASS
+BREAD, COIN, SHOP, LETTER, CLOCK, CARRY: PASS
+Scripted delivery reached stage-complete overlay: PASS
+Stage 1/2 startup screenshot review: PASS
+Page errors and HTTP response errors captured in live run: none
+Deterministic visual fixture: only existing /favicon.ico 404

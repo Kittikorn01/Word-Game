@@ -52,7 +52,7 @@ test('reaction durations, duplicates, reset and no replay after completed submis
  const {game:g,reactions:r,submit,events}=setup();
  for(const w of ['BREAD','COIN','SHOP','LETTER','CLOCK','CARRY'])submit(w);
  r.update(1);assert.equal(g.town.clockActive,false);assert.equal(r.isBusy,true);
- r.update(1);assert.equal(g.town.clockActive,true);assert.equal(g.town.shopOpen,false);
+ r.update(1);assert.equal(g.town.clockActive,true);assert.equal(g.town.shopOpen,true);
  r.update(.4);assert.equal(r.isBusy,false);assert.ok(g.town.breadReady&&g.town.coinPlaced&&g.town.shopOpen&&g.town.letterDelivered);
  const snapshot=structuredClone(g.town);
  for(const word of stage3.vocabulary){assert.equal(submit(word).status,'ALREADY_COMPLETED');r.onQuestCompleted(`town-${word.toLowerCase()}`);}
@@ -121,3 +121,23 @@ test('town rendering is a bounded idempotent projection with readable prop ident
   const after=[];scene.traverse(o=>after.push(o));assert.equal(before.length,after.length);
  }finally{view.dispose();assets.dispose();}
 });
+
+test('shop pulse, letter hover/receive and clock emphasis settle without accumulating transforms',()=>{
+ const assets=new PrimitiveAssets(),scene=createDiorama(stage3,assets),view=new TownReactionView(stage3,scene),{game:g}=setup();scene.add(view.root);
+ try {
+  const shop=scene.getObjectByName('shop-opening-pulse'),dial=scene.getObjectByName('town-clock-dial'),mail=scene.getObjectByName('mail-placeholder'),letter=scene.getObjectByName('town-envelope');
+  view.update(g);const home=mail.position.clone();
+  for(const key of ['shop','letter','clock'])g.town.started[key]=true;
+  g.town.progress.shop=.3;g.town.progress.letter=.15;g.town.progress.clock=.5;view.update(g);
+  assert.ok(Math.abs(shop.scale.x-1.1)<1e-8);assert.ok(Math.abs(dial.scale.x-1.09)<1e-8);
+  const hover=letter.position.clone();g.town.progress.letter=.24;view.update(g);assert.ok(letter.position.distanceTo(hover)<1e-8);assert.equal(letter.scale.x,1.35);
+  g.town.progress.letter=.5;view.update(g);assert.ok(letter.position.y>hover.y);assert.ok(letter.position.x>hover.x);
+  g.town.progress.letter=.9;view.update(g);assert.ok(mail.position.y>home.y);assert.equal(letter.visible,true);
+  for(const key of ['shop','letter','clock'])g.town.progress[key]=1;view.update(g);view.update(g);
+  assert.equal(shop.scale.x,1);assert.equal(dial.scale.x,1);assert.ok(mail.position.distanceTo(home)<1e-8);assert.equal(letter.visible,false);
+  assert.ok(Math.abs(scene.getObjectByName('mailbox-active-flag').rotation.z)<1e-8);
+  assert.equal(scene.getObjectByName('shop-shutter').visible,false);
+  assert.ok(scene.getObjectByName('shop-open-display').material.emissiveIntensity>=.5);
+ } finally {view.dispose();assets.dispose();}
+});
+

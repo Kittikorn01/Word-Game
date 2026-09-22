@@ -1,6 +1,6 @@
 import type { GameState } from './types.ts';
 
-export const TOWN_REACTION_SECONDS = { bread: 1.25, coin: 1.6, shop: 2.1, letter: 2.4, clock: 2 } as const;
+export const TOWN_REACTION_SECONDS = { bread: 1.25, coin: 1.6, shop: 1.2, letter: 2.4, clock: 2 } as const;
 export type TownReaction = keyof typeof TOWN_REACTION_SECONDS;
 export interface TownWorldState {
   breadReady: boolean;

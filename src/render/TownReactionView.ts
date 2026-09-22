@@ -26,6 +26,10 @@ export class TownReactionView {
   private coin = new THREE.Group();
   private letter = new THREE.Group();
   private parcel = new THREE.Group();
+  private shopPulse = new THREE.Group();
+  private mailbox: THREE.Object3D;
+  private mailboxHome: THREE.Vector3;
+  private dial: THREE.Object3D;
   private shutter: THREE.Mesh;
   private shutterHome: THREE.Vector3;
   private shutterHeight: number;
@@ -100,7 +104,8 @@ export class TownReactionView {
     this.flag.position.copy(stem.position); this.flag.position.y -= .12; stem.parent!.add(this.flag);
     for (const part of [stem, flag]) { part.position.sub(this.flag.position); this.flag.add(part); }
 
-    const dial = object('town-clock-dial');
+    this.mailbox = object('mail-placeholder'); this.mailboxHome = this.mailbox.position.clone();
+    const dial = this.dial = object('town-clock-dial');
     const pivot = (name: string) => {
       const hand = object(name); const group = new THREE.Group(); group.name = `${name}-pivot`;
       group.position.z = .055; dial.add(group); hand.position.z -= .055; group.add(hand); return group;
@@ -118,6 +123,13 @@ export class TownReactionView {
     this.destinationRing = this.mesh(this.ring, this.gold, [.62, .62, .62]); this.destinationRing.name = 'delivery-arrival-ring';
     this.destinationRing.rotation.x = -Math.PI / 2; this.destinationRing.position.set(this.points.parcelDestination.x, .075, this.points.parcelDestination.z);
     this.root.add(this.bread, this.coin, this.letter, this.parcel, this.shutter, this.destinationRing);
+    // Pivot at the shop's ground anchor, keeping the authored layout unchanged.
+    const shop = object('shop-placeholder');
+    const shopZone = stage.townBlockout!.zones.find(zone => zone.id === 'shop')!;
+    this.shopPulse.name = 'shop-opening-pulse';
+    this.shopPulse.position.set(shopZone.mass.x, 0, shopZone.mass.z);
+    this.root.add(this.shopPulse); this.root.updateMatrixWorld(true);
+    this.shopPulse.attach(shop); this.shopPulse.attach(this.shutter); this.shopPulse.attach(this.coin);
     this.bread.visible = this.coin.visible = this.letter.visible = this.parcel.visible = this.destinationRing.visible = false;
   }
   private geometry<T extends THREE.BufferGeometry>(geometry: T): T { this.geometries.push(geometry); return geometry; }
@@ -138,26 +150,40 @@ export class TownReactionView {
     this.bread.position.copy(this.breadHome); this.bread.position.y += Math.sin(p.bread * Math.PI) * .3;
     this.crust.emissive.set('#d58c32'); this.crust.emissiveIntensity = Math.sin(p.bread * Math.PI) * .18;
     this.coin.visible = s.started.coin;
-    this.coin.position.copy(this.coinHome); this.coin.position.y += Math.sin(p.coin * Math.PI) * .55;
+    this.coin.position.copy(this.coinHome).sub(this.shopPulse.position); this.coin.position.y += Math.sin(p.coin * Math.PI) * .55;
     this.coin.rotation.y = (1 - ease(p.coin)) * Math.PI * 4;
     this.coin.scale.setScalar(ease(p.coin * 4));
-    const opening = ease(p.shop);
+    const shopBeat = ease(p.shop / .22) * (1 - ease((p.shop - .36) / .36));
+    this.shopPulse.scale.setScalar(1 + .10 * shopBeat);
+    const opening = ease((p.shop - .35) / .65);
     this.shutter.visible = opening < 1;
     this.shutter.scale.y = this.shutterHeight * Math.max(.001, 1 - opening);
-    this.shutter.position.copy(this.shutterHome); this.shutter.position.y += this.shutterHeight * opening / 2;
+    this.shutter.position.copy(this.shutterHome).sub(this.shopPulse.position); this.shutter.position.y += this.shutterHeight * opening / 2;
     const awningDepth = .3 + opening * .7;
     this.awning.scale.z = this.awningScale.z * awningDepth;
     this.awning.position.z = this.awningHome.z - this.awningScale.z * (1 - awningDepth) / 2;
-    this.windowMaterial.emissiveIntensity = opening * .55;
+    this.windowMaterial.emissiveIntensity = opening * .55 + shopBeat * .25;
     this.letter.visible = s.started.letter && p.letter < 1;
-    const flight = ease((p.letter - .25) / .65);
-    this.letter.position.copy(this.mailHome).add(new THREE.Vector3((1 - flight) * 1.05, (1 - flight) * .55 + Math.sin(flight * Math.PI) * .22, (1 - flight) * .7));
-    this.letter.scale.setScalar(ease(p.letter * 6) * (1 - ease((p.letter - .82) / .18)));
-    this.flag.rotation.z = -Math.PI / 2 * (1 - ease((p.letter - .75) / .25));
+    // 0.2s pop, 0.4s hover, then a readable arc outside the west grid edge.
+    const flight = ease((p.letter - .25) / .55);
+    this.letter.position.copy(this.mailHome);
+    this.letter.position.x -= (1 - flight) * .75;
+    this.letter.position.y += (1 - flight) * .9 + Math.sin(flight * Math.PI) * .65;
+    this.letter.position.z += (1 - flight) * .75;
+    const pop = ease(p.letter / .085) * (1 + .10 * Math.sin(clamp(p.letter / .085) * Math.PI));
+    this.letter.scale.setScalar(1.35 * pop * (1 - ease((p.letter - .73) / .07)));
+    this.letter.rotation.z = -.12 * Math.sin(flight * Math.PI);
+    this.paper.emissive.set('#ffe3a0');
+    this.paper.emissiveIntensity = s.started.letter ? .18 * (1 - flight) : 0;
+    const received = ease((p.letter - .8) / .2);
+    this.mailbox.position.copy(this.mailboxHome);
+    this.mailbox.position.y += Math.sin(received * Math.PI) * .16;
+    this.flag.rotation.z = -Math.PI / 2 * (1 - received);
     const clockTurn = ease(p.clock);
     // Finish near 10:10, with distinct hands instead of overlapping at twelve.
     this.minute.rotation.z = -clockTurn * (Math.PI * 4 + Math.PI / 3) - s.clockElapsed * Math.PI / 30;
     this.hour.rotation.z = clockTurn * (-Math.PI * 2 + .12) - s.clockElapsed * Math.PI / 360;
+    this.dial.scale.setScalar(1 + .09 * Math.sin(ease(p.clock) * Math.PI));
     this.faceMaterial.emissiveIntensity = s.started.clock ? .08 + .35 * Math.sin(p.clock * Math.PI) : 0;
     const ending = game.townEnding;
     this.parcel.visible = townParcelAvailable(game);
@@ -177,3 +203,4 @@ export class TownReactionView {
   }
   dispose(): void { this.geometries.forEach(g => g.dispose()); this.materials.forEach(m => m.dispose()); this.root.removeFromParent(); }
 }
+

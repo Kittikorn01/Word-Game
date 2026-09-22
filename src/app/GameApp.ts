@@ -71,7 +71,7 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
     state.quests.focusedIndex = index;
     state.quests.pendingAdvanceId = null;
     questUI.render(state.quests, state.words);
-  });
+  }, !!stage.townProgression);
   questUI.render(state.quests, state.words);
   const wordUI = createWordSelectionOverlay(host, () => {
     finishQuestFeedback(state.quests, state.words); questUI.render(state.quests, state.words);

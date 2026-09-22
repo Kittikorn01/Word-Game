@@ -184,3 +184,21 @@ kbd { font: inherit; font-weight: 600; letter-spacing: 0.08em; }
 }
 .dev-stage-navigation button:hover { background: #dce4d6; }
 .dev-stage-navigation button:focus-visible { outline: 2px solid #527f77; outline-offset: 2px; }
+
+/* Stage 3 keeps feedback in the side margin, clear of town landmarks and grid. */
+.stage-runtime[data-stage-id='stage-3-busy-little-town'] .word-selection {
+  top: 45%; bottom: auto; left: auto; right: 20px; transform: none;
+  width: clamp(110px, calc((100vw - 54vh) / 2 - 40px), 220px); max-width: calc(100vw - 32px); padding: 7px 14px;
+}
+.stage-runtime[data-stage-id='stage-3-busy-little-town'] .quest-hud__summary { flex: 1; }
+.stage-runtime[data-stage-id='stage-3-busy-little-town'] .quest-hud__row[data-state='LOCKED'] {
+  opacity: .55; cursor: default; background: transparent;
+}
+.quest-hud__state { flex: 0 0 auto; font-size: 8px; letter-spacing: .03em; }
+@media (max-width: 600px) {
+  .stage-runtime[data-stage-id='stage-3-busy-little-town'] .word-selection {
+    top: auto; right: auto; width: auto; left: 12px; bottom: 84px; transform: none; max-width: calc(100vw - 254px); padding: 6px;
+  }
+  .stage-runtime[data-stage-id='stage-3-busy-little-town'] .word-selection__word { font-size: 17px; }
+}
+
