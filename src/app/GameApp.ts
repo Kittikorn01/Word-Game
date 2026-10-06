@@ -1,3 +1,4 @@
+import { createWorkshopWorldState, WorkshopReactionController } from '../simulation/WorkshopWorldState.ts';
 import { SupportObjectives } from '../simulation/SupportObjectives.ts';
 import { createSupportOverlay } from '../ui/SupportOverlay.ts';
 import { ExitInput } from '../input/ExitInput.ts';
@@ -51,6 +52,8 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
   try { view = new GameView(host, stage, grid); }
   catch (error) { console.error(error); ui.message('This scene needs WebGL 2. Please enable hardware acceleration or try another browser.'); return { lock() {}, dispose() { ui.dispose(); host.remove(); } }; }
   const state = createGameState(stage.playerStart, stage.grid, stage.quests);
+  const workshopReactions = stage.environment === 'workshop-blockout' ? new WorkshopReactionController(state.workshop = createWorkshopWorldState(state.words), state.words) : undefined;
+  const gameplayLocked = () => locked || !!workshopReactions?.inputLocked;
   const forestReactions = stage.forestProgression ? new ForestReactionController(state.forest = createForestWorldState(state.words)) : undefined;
   if (stage.forestProgression) state.traversal = createForestTraversal(stage);
   const ending = stage.forestProgression ? new ForestEndingController(stage) : undefined;
@@ -61,17 +64,17 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
   const assistance = new AssistanceState(resources);
   const reactions = new WorldReactionController(state.world, stage.worldReactions);
   const input = new KeyboardInput(action => {
-    if (!locked && !lost && !document.hidden) {
+    if (!gameplayLocked() && !lost && !document.hidden) {
       requestStageMovement(state, action, stage, selection.isSelecting);
     }
   });
   const pointer = new TilePointerInput(view.renderer.domElement, view.pickTile, id => grid.setHovered(id));
   const questUI = createQuestOverlay(host, index => {
-    if (locked || !state.quests.discoveredIds.includes(state.quests.definitions[index]?.id)) return;
+    if (gameplayLocked() || !state.quests.discoveredIds.includes(state.quests.definitions[index]?.id)) return;
     state.quests.focusedIndex = index;
     state.quests.pendingAdvanceId = null;
     questUI.render(state.quests, state.words);
-  }, !!stage.townProgression);
+  }, !!stage.townProgression || stage.environment === 'workshop-blockout');
   questUI.render(state.quests, state.words);
   const wordUI = createWordSelectionOverlay(host, () => {
     finishQuestFeedback(state.quests, state.words); questUI.render(state.quests, state.words);
@@ -79,22 +82,29 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
   const validate = createQuestValidator(state.quests.definitions, state.words);
   const feedback = new WordFeedback(grid);
   const selection = new WordSelection(grid, submission => {
-    if (locked || feedback.isResolving) return;
+    if (gameplayLocked() || feedback.isResolving) return;
     // Finish any older visible feedback before queuing this submission's advance.
     wordUI.clear();
-    const result = resolveQuestWord(state.quests, state.words, submission, validate, id => { reactions.onQuestCompleted(id); forestReactions?.onQuestCompleted(id); townReactions?.onQuestCompleted(id); completion.check(state.quests, state.words); onQuestCompleted(id); });
+    const result = resolveQuestWord(state.quests, state.words, submission, validate, id => { reactions.onQuestCompleted(id); forestReactions?.onQuestCompleted(id); townReactions?.onQuestCompleted(id); workshopReactions?.onQuestCompleted(id); completion.check(state.quests, state.words); onQuestCompleted(id); });
     feedback.begin(result);
     wordUI.show(result);
+    if (workshopReactions?.inputLocked) {
+      // Preserve STOP feedback while blocking every gameplay adapter immediately.
+      input.clear(); selectionInput.reset(); selection.cancel(); supportInput.clear();
+      state.player.targetTile = null; state.player.elapsed = 0;
+      assistance.clearScan(); assistanceUI.close(); grid.setHovered(null);
+      for (const element of host.querySelectorAll<HTMLElement>('.quest-hud,.assistance-hud,.support-hud,canvas')) element.inert = true;
+    }
     questUI.render(state.quests, state.words);
     onWordSubmitted(submission);
   });
   const tracker = new PlayerTileTracker(grid); tracker.update(state.player.currentTile);
   const selectionInput = new WordSelectionInput(view.renderer.domElement, () => {
-    if (locked || lost || document.hidden || feedback.isResolving || !isOnLetterGrid(state)) return false;
+    if (gameplayLocked() || lost || document.hidden || feedback.isResolving || !isOnLetterGrid(state)) return false;
     tracker.update(state.player.currentTile);
     return selection.start(tracker.currentPlayerTile);
   }, () => { selection.submit(); }, () => selection.cancel());
-  const assistanceBlocked = () => locked || lost || document.hidden || selection.isSelecting || feedback.isResolving;
+  const assistanceBlocked = () => gameplayLocked() || lost || document.hidden || selection.isSelecting || feedback.isResolving;
   const assistanceUI = createAssistanceOverlay(host, {
     hint: () => assistance.requestHint(state.quests, state.words, assistanceBlocked()),
     scan: letter => {
@@ -134,7 +144,7 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
   const abort = new AbortController();
   let lastTime = 0, accumulator = 0, lost = false;
   const step = 1 / 60;
-  const resetClock = () => { lastTime = 0; accumulator = 0; input.clear(); selectionInput.reset(); feedback.clear(); wordUI.clear(); assistance.clearScan(); assistanceUI.close(); };
+  const resetClock = () => { lastTime = 0; accumulator = 0; input.clear(); selectionInput.reset(); if (!workshopReactions?.inputLocked) { feedback.clear(); wordUI.clear(); } assistance.clearScan(); assistanceUI.close(); };
   window.addEventListener('blur', resetClock, { signal: abort.signal });
   document.addEventListener('visibilitychange', resetClock, { signal: abort.signal });
   view.renderer.domElement.addEventListener('webglcontextlost', event => {
@@ -149,18 +159,25 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
     accumulator += dt;
     lastTime = time;
     while (accumulator >= step) {
-      if (!locked) {
+      if (!gameplayLocked()) {
         updateStageMovement(state, step); assistance.update(step);
         support.update(step);
       }
       reactions.update(step);
       forestReactions?.update(step);
       townReactions?.update(step);
+      workshopReactions?.update(step, feedback.isResolving || wordUI.isShowing);
+      const previousPresentations = state.quests.presentations.length;
       refreshQuestAvailability(state.quests, state.words);
-      if (updateQuestPresentation(state.quests, step)) questUI.render(state.quests, state.words);
-      if (!locked && isOnLetterGrid(state) && tracker.update(state.player.currentTile)) selection.enterTile(tracker.currentPlayerTile);
+      if (workshopReactions && state.quests.presentations.length > previousPresentations) questUI.render(state.quests, state.words);
+      if (workshopReactions && !workshopReactions.notificationsHeld) {
+        // Workshop already supplied its completion buffer; skip the generic feedback lead.
+        for (const item of state.quests.presentations) item.remaining = Math.min(item.remaining, 3.2);
+      }
+      if ((!workshopReactions || !workshopReactions.notificationsHeld) && updateQuestPresentation(state.quests, step)) questUI.render(state.quests, state.words);
+      if (!gameplayLocked() && isOnLetterGrid(state) && tracker.update(state.player.currentTile)) selection.enterTile(tracker.currentPlayerTile);
       grid.update(step); feedback.update(step); accumulator -= step;
-      const reactionsBusy = reactions.isBusy || !!forestReactions?.isBusy || !!townReactions?.isBusy || view.reactionsBusy(state);
+      const reactionsBusy = reactions.isBusy || !!workshopReactions?.isBusy || !!forestReactions?.isBusy || !!townReactions?.isBusy || view.reactionsBusy(state);
       if (!locked && ending?.tryStart(state, reactionsBusy || feedback.isResolving)) lock();
       if (!locked && townEnding?.tryStart(state, reactionsBusy || feedback.isResolving)) lock();
       ending?.update(step);
@@ -169,12 +186,12 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
     }
     renderAssistance(dt);
     wordUI.update(selection, dt);
-    narrativeUI.update(state.quests);
+    narrativeUI.update(state.quests, workshopReactions?.notificationsHeld);
     view.render(state, dt, feedback.isResolving ? feedback.selectedTiles : selection.selectedTiles, feedback.visual, assistance, support);
-    if (!locked) pointer.refresh();
+    if (!gameplayLocked()) pointer.refresh();
   });
   return { lock, unlock() {
-    if (completeUI || ending?.inputLocked || townEnding?.inputLocked) return;
+    if (completeUI || workshopReactions?.inputLocked || ending?.inputLocked || townEnding?.inputLocked) return;
     locked = false; input.clear(); host.classList.remove('stage-runtime--locked');
     for (const element of host.querySelectorAll<HTMLElement>('[inert]')) element.inert = false;
   }, dispose() { view.renderer.setAnimationLoop(null); abort.abort(); assistance.clearScan(); assistanceUI.dispose(); supportInput.dispose(); supportUI.dispose(); completeUI?.dispose(); narrativeUI.dispose(); selectionInput.dispose(); wordUI.dispose(); questUI.dispose(); pointer.dispose(); input.dispose(); view.dispose(); ui.dispose(); host.remove(); } };

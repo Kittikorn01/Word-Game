@@ -29,6 +29,7 @@ export function createWordSelectionOverlay(host: HTMLElement, onFeedbackFinished
     if (wasShowing) onFeedbackFinished();
   };
   return {
+    get isShowing(): boolean { return remaining > 0; },
     show(result: WordResult) {
       clear();
       const style = presentation[result.status];

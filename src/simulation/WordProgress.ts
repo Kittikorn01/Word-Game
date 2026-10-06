@@ -4,8 +4,10 @@ import type { WordResult, WordValidator } from '../validation/WordValidator.ts';
 /** Session gameplay data; never stored in UI or meshes. */
 export interface WordProgress {
   completedWords: readonly string[];
+  /** Optional stage-owned presentation hold; dependencies remain unchanged. */
+  reactionHeldWords?: readonly string[];
   /** Shared read-only view of simulation-owned world gates. */
-  worldConditions?: Readonly<{ bridgeBuilt: boolean; climbRouteOpen: boolean }>;
+  worldConditions?: Readonly<{ bridgeBuilt?: boolean; climbRouteOpen?: boolean; 'workshop.productionFinished'?: boolean }>;
 }
 export function createWordProgress(): WordProgress { return { completedWords: Object.freeze([]) }; }
 export function resolveWord(progress: WordProgress, submission: WordSubmission, validate: WordValidator): WordResult {

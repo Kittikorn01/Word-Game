@@ -10,18 +10,20 @@ import { LetterGrid } from '../src/grid/LetterGrid.ts';
 import { createGameState } from '../src/simulation/update.ts';
 import { StageCompletionController } from '../src/simulation/StageCompletionController.ts';
 
-test('Stage 3 transitions through the existing intro to an empty, non-completing Stage 4', async () => {
+test('Stage 3 transitions through the existing intro to a vocabulary Stage 4 that waits for completion', async () => {
   const events=[];
   const manager=new StageManager(stages,stages[2].id,s=>{events.push(s.id);return {lock(){},unlock(){},dispose(){}};},
     {async fadeOut(){},async fadeIn(){},async showIntro(s){events.push(s.title);},dispose(){}});
   manager.start();assert.equal(await manager.next(),true);
   assert.deepEqual(events,[stages[2].id,'The Silent Workshop',stage4.id]);
+  assert.equal(await manager.next(),true);assert.equal(manager.currentStage.stageNumber,5);
   assert.equal(await manager.next(),false);manager.dispose();
   const state=createGameState(stage4.playerStart,stage4.grid,stage4.quests);
-  const completion=new StageCompletionController(stage4.id,()=>assert.fail('empty stage completed'));
+  const completion=new StageCompletionController(stage4.id,()=>assert.fail('unplayed stage completed'));
   completion.check(state.quests,state.words);completion.update(100,false,false);
-  assert.equal(state.quests.definitions.length,0);
-  assert.equal(stage4.worldReactions,undefined);assert.equal(stage4.vocabulary,undefined);
+  assert.equal(state.quests.definitions.length,6);
+  assert.equal(stage4.worldReactions,undefined);
+  assert.deepEqual(stage4.vocabulary,['GEAR','REPAIR','POWER','LEVER','START','STOP']);
 });
 
 test('workshop fits desktop/narrow frames and leaves every letter surface unobstructed', () => {

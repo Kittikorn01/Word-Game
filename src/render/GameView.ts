@@ -1,3 +1,5 @@
+import { WorkshopReactionView } from './WorkshopReactionView.ts';
+import { StormWeatherView } from './StormWeatherView.ts';
 import { RiverView } from './RiverView.ts';
 import { ForestReactionView } from './ForestReactionView.ts';
 import { traversalPose, isOnLetterGrid } from '../simulation/ForestTraversal.ts';
@@ -35,6 +37,8 @@ export class GameView {
   private river?: RiverView;
   private forest?: ForestReactionView;
   private town?: TownReactionView;
+  private workshop?: WorkshopReactionView;
+  private stormWeather?: StormWeatherView;
   private shards: WordShardView;
   private letters: LetterGridView;
   private selectionPath = new SelectionPathView();
@@ -60,8 +64,9 @@ export class GameView {
       }
     } else {
     const workshop = stage.environment === 'workshop-blockout';
-    this.scene.add(new THREE.HemisphereLight('#fff7df', workshop ? '#777b76' : '#849580', workshop ? 1.7 : 2.1));
-    const sun = new THREE.DirectionalLight('#fff0d3', workshop ? 2 : 3);
+    const storm = stage.environment === 'storm-blockout';
+    this.scene.add(new THREE.HemisphereLight(storm ? '#d1e0ef' : '#fff7df', storm ? '#56635f' : workshop ? '#777b76' : '#849580', storm ? 1.8 : workshop ? 1.7 : 2.1));
+    const sun = new THREE.DirectionalLight(storm ? '#c4d6e6' : '#fff0d3', storm ? 1.35 : workshop ? 2 : 3);
     sun.position.set(-5, 12, 7); sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024);
     Object.assign(sun.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: 0.5, far: 35 });
@@ -77,7 +82,14 @@ export class GameView {
       this.renderer.setClearColor('#bbb8ac');
     }
     if (this.outsideMaterial) { ground.material = this.outsideMaterial; ground.receiveShadow = false; }
+    if (stage.environment === 'storm-blockout') {
+      ground.material = this.assets.material.stormBackdrop;
+      this.renderer.setClearColor('#879aa5');
+      this.renderer.domElement.setAttribute('aria-label', 'A rainy forest clearing with a letter grid, open shelter, unlit fire ring and arrival trail.');
+      this.stormWeather = new StormWeatherView(); this.scene.add(this.stormWeather.root);
+    }
     this.scene.add(ground, createDiorama(stage, this.assets), this.player);
+    if (stage.environment === 'workshop-blockout') { this.workshop = new WorkshopReactionView(this.scene); this.scene.add(this.workshop.root); }
     if (stage.townProgression) { this.town = new TownReactionView(stage, this.scene); this.scene.add(this.town.root); }
     if (stage.forestBlockout?.river) { this.river = new RiverView(stage.forestBlockout); this.scene.add(this.river.root); }
     if (stage.forestProgression) { this.forest = new ForestReactionView(this.assets, stage, this.scene); this.scene.add(this.forest.root); }
@@ -102,8 +114,10 @@ export class GameView {
   render(state: GameState, dt: number, selectedTiles: readonly LetterTile[] = [], feedback?: FeedbackVisual, assistance?: AssistanceState, support?: SupportObjectives): void {
 
     this.river?.update(dt, state.forest);
+    this.stormWeather?.update(dt);
     if (state.forest) this.forest?.update(state.forest);
     if (state.town) this.town?.update(state);
+    if (state.workshop) this.workshop?.update(state.workshop);
     this.cottageLighting?.update(state.world.lightOn, dt);
     this.letters.update(dt, new Set(selectedTiles.map(tile => tile.id)), feedback, assistance?.scanState, selectedTiles.at(-1)?.id);
     this.shards.update(dt, support?.rewardVisual ?? null);
@@ -127,6 +141,8 @@ export class GameView {
   dispose(): void {
     this.forest?.dispose();
     this.town?.dispose();
+    this.workshop?.dispose();
+    this.stormWeather?.dispose();
     this.river?.dispose();
     this.shards.dispose();
     this.outsideMaterial?.dispose();

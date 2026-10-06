@@ -42,6 +42,7 @@ export function createQuestProgress(definitions: readonly QuestDefinition[] = []
 export function questStatus(quest: QuestDefinition, words: WordProgress): QuestStatus {
   const completed = new Set(words.completedWords.map(normalizeWord));
   if (completed.has(normalizeWord(quest.targetWord))) return 'COMPLETED';
+  if (words.reactionHeldWords?.includes(normalizeWord(quest.targetWord))) return 'LOCKED';
   return (quest.requires ?? []).every(word => completed.has(normalizeWord(word))) &&
     (!quest.requiresWorld || words.worldConditions?.[quest.requiresWorld]) ? 'AVAILABLE' : 'LOCKED';
 }

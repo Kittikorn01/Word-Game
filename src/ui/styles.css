@@ -192,3 +192,10 @@ canvas { display: block; width: 100%; height: 100%; }
 .word-selection .word-selection__status {
   margin-top: 4px; padding: 0 4px; line-height: 16px;
 }
+
+/* Workshop vocabulary uses the existing fixed-slot quest presentation. */
+.stage-runtime[data-stage-id='stage-4-silent-workshop'] .quest-hud__summary { flex: 1; }
+.stage-runtime[data-stage-id='stage-4-silent-workshop'] .quest-hud__row[data-state='LOCKED'] {
+  opacity: .55; cursor: default; background: transparent;
+}
+

@@ -6,6 +6,6 @@ export interface QuestDefinition {
   readonly worldReactionId?: string;
   /** Target words that must already be completed; stage-owned dependency data. */
   readonly requires?: readonly string[];
-  readonly requiresWorld?: 'bridgeBuilt';
+  readonly requiresWorld?: 'bridgeBuilt' | 'workshop.productionFinished';
 }
 export type QuestStatus = 'LOCKED' | 'AVAILABLE' | 'COMPLETED';

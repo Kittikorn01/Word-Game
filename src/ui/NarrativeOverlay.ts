@@ -5,9 +5,9 @@ export function createNarrativeOverlay(host: HTMLElement) {
   heading.textContent = 'NEW QUEST'; banner.append(heading,clue); banner.hidden = true;
   host.append(banner);
   return {
-    update(quests: QuestProgress) {
+    update(quests: QuestProgress, held = false) {
       const current = quests.presentations[0];
-      const visible = !!current && current.remaining <= 3.2;
+      const visible = !held && !!current && current.remaining <= 3.2;
       banner.hidden = !visible;
       if (visible) {
         const text = quests.definitions.find(q => q.id === current.questId)!.clue;

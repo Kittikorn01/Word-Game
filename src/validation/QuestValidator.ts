@@ -8,7 +8,7 @@ export function createQuestValidator(quests: readonly QuestDefinition[], progres
   const targets = new Map(quests.map(quest => [normalizeWord(quest.targetWord), quest]));
   return (submission, completedWords) => {
     const word = normalizeWord(submission.word);
-    const locked = !!targets.get(word) && questStatus(targets.get(word)!, { completedWords: [...completedWords], worldConditions: progress?.worldConditions }) === 'LOCKED';
+    const locked = !!targets.get(word) && questStatus(targets.get(word)!, { completedWords: [...completedWords], worldConditions: progress?.worldConditions, reactionHeldWords: progress?.reactionHeldWords }) === 'LOCKED';
     const status = !word || !targets.has(word) || locked ? 'WRONG'
       : completedWords.some(value => normalizeWord(value) === word) ? 'ALREADY_COMPLETED' : 'CORRECT';
     return Object.freeze({ status, word, ...(locked ? { reason: 'LOCKED' as const } : {}), selectedTileIds: Object.freeze([...submission.selectedTileIds]) });

@@ -32,6 +32,13 @@ export class PrimitiveAssets {
     body: new THREE.CylinderGeometry(0.19, 0.27, 0.46, 8)
   };
   readonly material = {
+    stormEarth: this.make('#555e57'), stormEdge: this.make('#414c4c'),
+    stormWood: this.make('#786653'), stormRoof: this.make('#4c5a55'),
+    stormDry: this.make('#8a8975'), stormMat: this.make('#a4a38b'),
+    stormLeaf: this.make('#405e53'), stormLeafTop: this.make('#597365'),
+    stormStone: this.make('#828f92'), stormPath: this.make('#777e72'),
+    stormWater: new THREE.MeshStandardMaterial({ color: '#6d8995', roughness: .24, flatShading: true }),
+    stormBackdrop: this.make('#879aa5'),
     workshopFloor: this.make('#96938a'), workshopJoint: this.make('#86847d'),
     workshopSteel: this.make('#737e7b'), workshopOlive: this.make('#737b59'),
     workshopDark: this.make('#373e3c'), workshopAmber: this.make('#b99a50'),
