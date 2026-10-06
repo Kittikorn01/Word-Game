@@ -3,6 +3,8 @@ import * as THREE from 'three';
 // Stable domain keys; one owner disposes shared GPU resources.
 export class PrimitiveAssets {
   readonly geometry = {
+    workshopCylinder: new THREE.CylinderGeometry(.5, .5, 1, 12),
+    workshopRing: new THREE.TorusGeometry(.5, .075, 4, 12),
     // Unit chamfered slab; shared town geometry uses the existing disposal owner.
     townSlab: (() => {
       const outline = new THREE.Shape();
@@ -30,6 +32,10 @@ export class PrimitiveAssets {
     body: new THREE.CylinderGeometry(0.19, 0.27, 0.46, 8)
   };
   readonly material = {
+    workshopFloor: this.make('#96938a'), workshopJoint: this.make('#86847d'),
+    workshopSteel: this.make('#737e7b'), workshopOlive: this.make('#737b59'),
+    workshopDark: this.make('#373e3c'), workshopAmber: this.make('#b99a50'),
+    workshopWood: this.make('#846951'), workshopBackdrop: this.make('#bbb8ac'),
     townTeal: this.make('#5c837b'), townInk: this.make('#514d43'), townMail: this.make('#718eaa'),
     // Town-only surfaces separate the plaza from architecture without changing other stages.
     // Slight cool compensation reads as warm gray under the town's warm sunlight.

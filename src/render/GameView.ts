@@ -59,8 +59,9 @@ export class GameView {
         material.emissive.copy(material.color); material.emissiveIntensity = .22;
       }
     } else {
-    this.scene.add(new THREE.HemisphereLight('#fff7df', '#849580', 2.1));
-    const sun = new THREE.DirectionalLight('#fff0d3', 3);
+    const workshop = stage.environment === 'workshop-blockout';
+    this.scene.add(new THREE.HemisphereLight('#fff7df', workshop ? '#777b76' : '#849580', workshop ? 1.7 : 2.1));
+    const sun = new THREE.DirectionalLight('#fff0d3', workshop ? 2 : 3);
     sun.position.set(-5, 12, 7); sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024);
     Object.assign(sun.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: 0.5, far: 35 });
@@ -71,6 +72,10 @@ export class GameView {
     sun.shadow.normalBias = 0.04; this.scene.add(sun);
     }
     const ground = this.assets.mesh('box', 'ground'); ground.scale.set(200, 0.1, 200); ground.position.y = stage.forestBlockout ? stage.forestBlockout.baseY - .06 : -0.87; ground.castShadow = false;
+    if (stage.environment === 'workshop-blockout') {
+      ground.material = this.assets.material.workshopBackdrop;
+      this.renderer.setClearColor('#bbb8ac');
+    }
     if (this.outsideMaterial) { ground.material = this.outsideMaterial; ground.receiveShadow = false; }
     this.scene.add(ground, createDiorama(stage, this.assets), this.player);
     if (stage.townProgression) { this.town = new TownReactionView(stage, this.scene); this.scene.add(this.town.root); }

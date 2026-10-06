@@ -32,7 +32,7 @@ export function createWordSelectionOverlay(host: HTMLElement, onFeedbackFinished
     show(result: WordResult) {
       clear();
       const style = presentation[result.status];
-      heading.textContent = result.status === 'CORRECT' ? '? WORD FOUND' : result.status === 'ALREADY_COMPLETED' ? '? ALREADY FOUND' : '? NOT NEEDED';
+      heading.hidden = true;
       word.textContent = result.word; status.textContent = result.reason === 'LOCKED' ? "That word isn't needed here yet." : style.label;
       reveal();
       status.hidden = false; element.dataset.tone = style.tone;
@@ -42,7 +42,7 @@ export function createWordSelectionOverlay(host: HTMLElement, onFeedbackFinished
       // A fresh selection takes priority over the previous result in this shared HUD.
       if (selection.isSelecting) {
         clear(); status.hidden = true; element.dataset.tone = '';
-        heading.textContent = 'CURRENT WORD';
+        heading.hidden = false; heading.textContent = 'CURRENT WORD';
         if (word.textContent !== selection.currentWord) { word.textContent = selection.currentWord; reveal(); }
         element.hidden = !selection.currentWord;
         return;

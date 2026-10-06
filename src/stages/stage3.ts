@@ -32,6 +32,7 @@ const town: TownBlockout = {
 export const stage3: StageDefinition = {
   id: 'stage-3-busy-little-town', stageNumber: 3, title: 'A Busy Little Town',
   kind: 'playable', environment: 'town-blockout',
+  nextStageId: 'stage-4-silent-workshop',
   townProgression: true,
   grid: { rows: 7, columns: 7, tileSize: 1, origin: { x: 0, z: 1 } },
   playerStart: { row: 6, column: 3 },

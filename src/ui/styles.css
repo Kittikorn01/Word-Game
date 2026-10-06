@@ -4,14 +4,10 @@ html, body, #app { margin: 0; width: 100%; height: 100%; overflow: hidden; }
 #app { position: relative; }
 canvas { display: block; width: 100%; height: 100%; }
 .overlay { position: absolute; inset: 0; pointer-events: none; }
-.controls { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; white-space: nowrap; font-size: 12px; padding: 10px 16px; border: 1px solid #ffffff80; border-radius: 25px; background: #f7f5e8d9; }
-kbd { font: inherit; font-weight: 600; letter-spacing: 0.08em; }
 .notice { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: 420px; width: calc(100% - 40px); padding: 18px; background: #fff9ec; border-radius: 12px; text-align: center; }
-@media (max-width: 600px) { .controls { bottom: 12px; font-size: 11px; gap: 7px; } }
 /* Visible UI blocks selection starts; empty overlay space stays transparent. */
 .overlay > * { pointer-events: auto; }
-.selection-hint { position: absolute; bottom: 3px; width: 100%; margin: 0; text-align: center; font-size: 10px; }
-.word-selection { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); max-width: min(54vw, 600px); overflow-wrap: anywhere; padding: 8px 18px; border: 1px solid #fff5db; border-radius: 20px; background: #faf1dbed; color: #394b3e; font-size: 19px; font-weight: 650; letter-spacing: 0.12em; text-align: center; }
+.word-selection { position: absolute; top: auto; bottom: 8px; left: 50%; transform: translateX(-50%); max-width: min(54vw, 600px); overflow-wrap: anywhere; padding: 8px 18px; border: 1px solid #fff5db; border-radius: 20px; background: #faf1dbed; color: #394b3e; font-size: 19px; font-weight: 650; letter-spacing: 0.12em; text-align: center; }
 .word-selection[data-tone='correct'] { --feedback-ink: #2c6343; --feedback-panel: #edf6eaff; --feedback-border: #a6c7a6; --feedback-badge: #dcebd8; }
 .word-selection[data-tone='already'] { --feedback-ink: #805b21; --feedback-panel: #fff5dfff; --feedback-border: #d7bb78; --feedback-badge: #f5e7bd; }
 .word-selection[data-tone='wrong'] { --feedback-ink: #914e4b; --feedback-panel: #fcf0ecff; --feedback-border: #d6aaa2; --feedback-badge: #f3dfd9; }
@@ -20,11 +16,9 @@ kbd { font: inherit; font-weight: 600; letter-spacing: 0.08em; }
 .word-selection__status { margin-top: 8px; padding: 4px 9px; border-radius: 8px; background: var(--feedback-badge); font-size: 13px; font-weight: 550; line-height: 1.4; letter-spacing: 0.01em; }
 .word-selection[data-tone='correct'] .word-selection__status { font-size: 11px; font-weight: 750; letter-spacing: 0.12em; }
 @media (max-width: 600px) {
-  .word-selection { top: 64px; max-width: 90vw; font-size: 16px; }
+  .word-selection { max-width: 90vw; font-size: 16px; }
   .word-selection[data-tone]:not([data-tone='']) { max-width: min(90vw, 340px); padding: 10px 16px; }
   .word-selection[data-tone]:not([data-tone='']) .word-selection__word { font-size: 22px; }
-  .selection-hint { padding: 0 10px; font-size: 9px; }
-  .controls { bottom: 28px; }
 }
 /* A single warm quest cluster; DOM hit-testing keeps clicks off the canvas. */
 :root { --quest-paper: #faf4e6; --quest-ink: #394b3e; --quest-muted: #687263; --quest-success: #2c6343; --quest-border: #d7d9c7; --quest-focus: #eee3cb; --quest-focus-border: #b5a17b; }
@@ -44,14 +38,10 @@ kbd { font: inherit; font-weight: 600; letter-spacing: 0.08em; }
 .quest-hud__row:focus-visible { outline: 2px solid var(--quest-focus-border); outline-offset: 0; }
 .quest-hud__content { border-top: 1px solid var(--quest-border); padding-top: 9px; }
 .quest-hud__clue { margin: 0 0 3px; font-size: 13px; line-height: 1.45; overflow-wrap: break-word; }
-@media (min-width: 601px) and (max-width: 1100px) {
-  .word-selection, .word-selection[data-tone]:not([data-tone='']) { left: auto; right: 20px; transform: none; max-width: calc(100vw - 340px); }
-}
 @media (max-width: 600px) {
   .quest-hud { top: 12px; left: 16px; width: 260px; padding: 10px 12px 6px; }
   .quest-hud__clue { font-size: 12px; }
   .quest-hud__list { margin-top: 7px; margin-bottom: 7px; }
-  .word-selection { top: auto; bottom: 100px; }
 }
 @media (max-height: 480px) and (min-width: 601px) {
   .quest-hud { top: 10px; left: 12px; width: 235px; padding: 8px 12px; }
@@ -134,7 +124,6 @@ kbd { font: inherit; font-weight: 600; letter-spacing: 0.08em; }
  .quest-hud__list { max-height: 110px; }
  .assistance-hud { right: 12px; bottom: 85px; width: 218px; padding: 9px 11px; }
  .assistance-tools { gap: 10px; } .assistance-hud form { padding-left: 10px; }
- .word-selection, .word-selection[data-tone]:not([data-tone='']) { bottom: 350px; }
 }
 @media (max-height: 540px) and (min-width: 601px) {
  .quest-hud { top: 10px; left: 12px; width: 235px; }
@@ -166,7 +155,6 @@ kbd { font: inherit; font-weight: 600; letter-spacing: 0.08em; }
 .word-selection__word { font-family: 'Courier New', monospace; font-size: 27px; font-weight: 800; line-height: 1.12; letter-spacing: .1em; max-height: 3.5em; overflow-y: auto; }
 .word-selection[data-tone]:not([data-tone='']) { padding: 9px 18px; border-radius: 12px 8px 12px 8px; border-bottom-width: 4px; }
 .word-selection__status { margin-top: 5px; font-size: 12px; padding: 3px 7px; }
-.word-selection[data-tone='correct'] .word-selection__status { display: none; }
 @media (max-width: 600px) { .word-selection__word { font-size: 22px; } }
 
 
@@ -185,20 +173,22 @@ kbd { font: inherit; font-weight: 600; letter-spacing: 0.08em; }
 .dev-stage-navigation button:hover { background: #dce4d6; }
 .dev-stage-navigation button:focus-visible { outline: 2px solid #527f77; outline-offset: 2px; }
 
-/* Stage 3 keeps feedback in the side margin, clear of town landmarks and grid. */
-.stage-runtime[data-stage-id='stage-3-busy-little-town'] .word-selection {
-  top: 45%; bottom: auto; left: auto; right: 20px; transform: none;
-  width: clamp(110px, calc((100vw - 54vh) / 2 - 40px), 220px); max-width: calc(100vw - 32px); padding: 7px 14px;
-}
 .stage-runtime[data-stage-id='stage-3-busy-little-town'] .quest-hud__summary { flex: 1; }
 .stage-runtime[data-stage-id='stage-3-busy-little-town'] .quest-hud__row[data-state='LOCKED'] {
   opacity: .55; cursor: default; background: transparent;
 }
 .quest-hud__state { flex: 0 0 auto; font-size: 8px; letter-spacing: .03em; }
-@media (max-width: 600px) {
-  .stage-runtime[data-stage-id='stage-3-busy-little-town'] .word-selection {
-    top: auto; right: auto; width: auto; left: 12px; bottom: 84px; transform: none; max-width: calc(100vw - 254px); padding: 6px;
-  }
-  .stage-runtime[data-stage-id='stage-3-busy-little-town'] .word-selection__word { font-size: 17px; }
+/* Shared bottom zone fits below the lowest Hint / Scan tray (66px).
+   A scrollable word line keeps long submissions from growing into the playfield. */
+.word-selection, .word-selection[data-tone]:not([data-tone='']) {
+  top: auto; bottom: 8px; left: 50%; right: auto; transform: translateX(-50%);
+  width: max-content; max-width: min(360px, calc(100% - 24px)); padding: 4px 14px;
 }
-
+.word-selection .word-selection__word,
+.word-selection[data-tone]:not([data-tone='']) .word-selection__word {
+  font-size: 22px; line-height: 24px; max-height: 24px;
+}
+.word-selection__heading { margin-bottom: 3px; }
+.word-selection .word-selection__status {
+  margin-top: 4px; padding: 0 4px; line-height: 16px;
+}

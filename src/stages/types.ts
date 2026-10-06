@@ -40,7 +40,7 @@ export interface StageDefinition {
   kind?: 'playable' | 'placeholder';
   nextStageId?: string;
   exit?: ExitDefinition;
-  environment?: 'cottage' | 'forest-blockout' | 'town-blockout';
+  environment?: 'cottage' | 'forest-blockout' | 'town-blockout' | 'workshop-blockout';
   townBlockout?: TownBlockout;
   forestBlockout?: ForestBlockout;
   forestProgression?: boolean;

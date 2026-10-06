@@ -15,7 +15,7 @@ test('Stage 2 uses the existing intro flow to mount the Stage 3 vocabulary runti
   }, dispose() {} });
   manager.start(); assert.equal(await manager.next(), true);
   assert.deepEqual(events, [stages[1].id, 'intro', stage3.id]);
-  assert.equal(await manager.next(), false); manager.dispose();
+  assert.equal(manager.nextStageId, 'stage-4-silent-workshop'); manager.dispose();
   const state = createGameState(stage3.playerStart, stage3.grid, stage3.quests);
   const completion = new StageCompletionController(stage3.id, () => assert.fail('blockout completed'));
   completion.check(state.quests, state.words); completion.update(100, false, false);
