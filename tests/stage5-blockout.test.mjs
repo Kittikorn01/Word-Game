@@ -33,12 +33,12 @@ test('storm clearing fits desktop/narrow frames and leaves every letter surface 
 });
 
 
-test('Stage 5 stays a scenery blockout with no quests, reactions or completion', async () => {
+test('Stage 5 vocabulary keeps world reactions and destinations unconfigured', async () => {
   const { createGameState } = await import('../src/simulation/update.ts');
   const { StageCompletionController } = await import('../src/simulation/StageCompletionController.ts');
   const state = createGameState(stage5.playerStart, stage5.grid, stage5.quests);
-  assert.equal(state.quests.definitions.length, 0);
-  for (const key of ['vocabulary','worldReactions','worldObjects','supportObjectives','wordShardSpawns','exit','nextStageId','forestProgression','townProgression']) assert.equal(stage5[key], undefined, key);
+  assert.equal(state.quests.definitions.length, 6);
+  for (const key of ['worldReactions','worldObjects','supportObjectives','wordShardSpawns','exit','nextStageId','forestProgression','townProgression']) assert.equal(stage5[key], undefined, key);
   const completion = new StageCompletionController(stage5.id, () => assert.fail('blockout completed'));
   completion.check(state.quests, state.words); completion.update(100, false, false);
 });

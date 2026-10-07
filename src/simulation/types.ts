@@ -1,3 +1,4 @@
+import type { StormWorldState } from './StormWorldState.ts';
 import type { WorkshopWorldState } from './WorkshopWorldState.ts';
 import type { ExitState } from './ExitInteraction.ts';
 import type { StageWorldState } from './WorldReactionController.ts';
@@ -12,6 +13,7 @@ import type { TownEndingState } from './TownEndingController.ts';
 export interface Position { x: number; z: number }
 export interface MoveAction { x: number; z: number }
 export interface GameState {
+  storm?: StormWorldState;
   workshop?: WorkshopWorldState;
   town?: TownWorldState;
   townEnding?: TownEndingState;

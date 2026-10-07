@@ -1,3 +1,4 @@
+import { StormReactionView } from './StormReactionView.ts';
 import { WorkshopReactionView } from './WorkshopReactionView.ts';
 import { StormWeatherView } from './StormWeatherView.ts';
 import { RiverView } from './RiverView.ts';
@@ -39,6 +40,7 @@ export class GameView {
   private town?: TownReactionView;
   private workshop?: WorkshopReactionView;
   private stormWeather?: StormWeatherView;
+  private storm?: StormReactionView;
   private shards: WordShardView;
   private letters: LetterGridView;
   private selectionPath = new SelectionPathView();
@@ -83,12 +85,13 @@ export class GameView {
     }
     if (this.outsideMaterial) { ground.material = this.outsideMaterial; ground.receiveShadow = false; }
     if (stage.environment === 'storm-blockout') {
-      ground.material = this.assets.material.stormBackdrop;
+      ground.name = 'storm-sky-backdrop'; ground.material = this.assets.material.stormBackdrop;
       this.renderer.setClearColor('#879aa5');
-      this.renderer.domElement.setAttribute('aria-label', 'A rainy forest clearing with a letter grid, open shelter, unlit fire ring and arrival trail.');
+      this.renderer.domElement.setAttribute('aria-label', 'A rainy forest clearing with a letter grid, shelter, fire area and rescue trail.');
       this.stormWeather = new StormWeatherView(); this.scene.add(this.stormWeather.root);
     }
     this.scene.add(ground, createDiorama(stage, this.assets), this.player);
+    if (stage.environment === 'storm-blockout') { this.storm = new StormReactionView(this.scene); this.scene.add(this.storm.root); }
     if (stage.environment === 'workshop-blockout') { this.workshop = new WorkshopReactionView(this.scene); this.scene.add(this.workshop.root); }
     if (stage.townProgression) { this.town = new TownReactionView(stage, this.scene); this.scene.add(this.town.root); }
     if (stage.forestBlockout?.river) { this.river = new RiverView(stage.forestBlockout); this.scene.add(this.river.root); }
@@ -114,7 +117,8 @@ export class GameView {
   render(state: GameState, dt: number, selectedTiles: readonly LetterTile[] = [], feedback?: FeedbackVisual, assistance?: AssistanceState, support?: SupportObjectives): void {
 
     this.river?.update(dt, state.forest);
-    this.stormWeather?.update(dt);
+    this.stormWeather?.update(dt, state.storm);
+    if (state.storm) this.storm?.update(state.storm);
     if (state.forest) this.forest?.update(state.forest);
     if (state.town) this.town?.update(state);
     if (state.workshop) this.workshop?.update(state.workshop);
@@ -142,6 +146,7 @@ export class GameView {
     this.forest?.dispose();
     this.town?.dispose();
     this.workshop?.dispose();
+    this.storm?.dispose();
     this.stormWeather?.dispose();
     this.river?.dispose();
     this.shards.dispose();

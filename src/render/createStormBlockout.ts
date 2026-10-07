@@ -29,16 +29,19 @@ export function createStormBlockout(assets: PrimitiveAssets): Group {
     const rib = part(shelter, 'roof-batten', x, 2.39, -.25, .055, .035, 1.85, 'stormWood'); rib.rotation.x = .22;
   }
   const dry = group('safe-dry-zone', .85, -3.55);
-  part(dry, 'resting-mat', 0, .145, 0, 1.65, .045, .85, 'stormMat', 'townSlab');
-  part(dry, 'rolled-mat-end', .66, .23, 0, .22, .19, .8, 'stormDry');
-  const fire = group('unlit-fire-area', -1.95, -2.98);
-  part(fire, 'cold-ash-bed', 0, .035, 0, 1.1, .05, .9, 'stormEdge', 'rock');
+  // Raised cloth bedroll and one pillow remain unlit until future world reactions.
+  part(dry, 'resting-mat', 0, .195, 0, 1.65, .13, .85, 'stormMat', 'townSlab');
+  part(dry, 'bedroll-pillow', .55, .305, 0, .38, .14, .66, 'stormPillow', 'townSlab');
+  const fire = group('unlit-fire-area', -3.85, -2.95);
+  // Low compact soil anchors the ring on the shelter's front-left apron.
+  part(fire, 'fire-ground-patch', 0, .014, 0, 1.65, .025, 1.35, 'stormEdge', 'workshopCylinder');
+  part(fire, 'cold-ash-bed', 0, .036, 0, 1.1, .03, .86, 'stormEdge', 'workshopCylinder');
   for (let i = 0; i < 9; i++) {
     const angle = i * Math.PI * 2 / 9;
     part(fire, 'fire-ring-stone', Math.cos(angle) * .59, .15, Math.sin(angle) * .43, .32, .26, .28, 'stormStone', 'rock');
   }
   for (const angle of [-.6, .6]) {
-    const log = part(fire, 'unlit-firewood', 0, .13, 0, .73, .13, .14, 'stormWood'); log.rotation.y = angle;
+    const log = part(fire, 'unlit-firewood', 0, angle < 0 ? .13 : .27, 0, .85, .14, .17, 'stormWood'); log.rotation.y = angle;
   }
   const path = group('rescue-entry-path', 4.55, 1);
   part(path, 'outside-arrival', .35, .013, 3.45, 1.25, .025, 3, 'stormPath', 'townSlab');

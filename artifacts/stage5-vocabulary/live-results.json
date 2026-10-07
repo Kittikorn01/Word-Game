@@ -1,0 +1,5 @@
+{
+  "code": 0,
+  "stdout": "PASS: all 6 words via keyboard/mouse with backtracking; hints; scan; stages 1–5 boot; fixed HUD order; locked submissions; no gameplay console errors (existing missing favicon recorded separately).\n",
+  "stderr": ""
+}

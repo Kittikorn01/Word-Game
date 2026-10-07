@@ -34,7 +34,8 @@ export class PrimitiveAssets {
   readonly material = {
     stormEarth: this.make('#555e57'), stormEdge: this.make('#414c4c'),
     stormWood: this.make('#786653'), stormRoof: this.make('#4c5a55'),
-    stormDry: this.make('#8a8975'), stormMat: this.make('#a4a38b'),
+    stormDry: this.make('#8a8975'), stormMat: this.make('#b5a084'),
+    stormPillow: this.make('#c6b69c'),
     stormLeaf: this.make('#405e53'), stormLeafTop: this.make('#597365'),
     stormStone: this.make('#828f92'), stormPath: this.make('#777e72'),
     stormWater: new THREE.MeshStandardMaterial({ color: '#6d8995', roughness: .24, flatShading: true }),
