@@ -134,12 +134,13 @@ export class GameView {
     const x = THREE.MathUtils.lerp(from.x, to.x, eased), z = THREE.MathUtils.lerp(from.z, to.z, eased);
     this.world?.update(state.world, dt, {x,z});
     const scripted = state.townEnding?.pose ? state.townEnding : state.ending;
-    const route = scripted?.pose ?? traversalPose(state);
+    const rescue=state.storm?.playerPose;
+    const route = rescue ?? scripted?.pose ?? traversalPose(state);
     this.player.position.set(route?.x ?? x, .105 + (route?.y ?? 0), route?.z ?? z);
     const currentLetter = this.grid.getTile(current.row, current.column);
-    this.floatingLetter.sprite.visible = !!currentLetter && !scripted?.pose && isOnLetterGrid(state);
+    this.floatingLetter.sprite.visible = !!currentLetter && !rescue && !scripted?.pose && isOnLetterGrid(state);
     if (currentLetter) this.floatingLetter.update(currentLetter.letter, x, z, dt);
-    this.player.rotation.y = scripted?.pose ? scripted.heading : state.player.heading;
+    this.player.rotation.y = rescue?.heading ?? (scripted?.pose ? scripted.heading : state.player.heading);
     this.renderer.render(this.scene, this.camera);
   }
   dispose(): void {

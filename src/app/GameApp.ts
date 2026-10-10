@@ -1,3 +1,4 @@
+import { STEP_DURATION } from '../simulation/update.ts';
 import { createStormWorldState, StormReactionController } from '../simulation/StormWorldState.ts';
 import { createWorkshopWorldState, WorkshopReactionController } from '../simulation/WorkshopWorldState.ts';
 import { SupportObjectives } from '../simulation/SupportObjectives.ts';
@@ -91,9 +92,18 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
     feedback.begin(result);
     wordUI.show(result);
     if (workshopReactions?.inputLocked || stormReactions?.inputLocked) {
+      if (state.storm && !state.storm.playerPose) {
+        const a=grid.getTile(state.player.currentTile.row,state.player.currentTile.column)!.worldPosition;
+        const b=state.player.targetTile?grid.getTile(state.player.targetTile.row,state.player.targetTile.column)!.worldPosition:a;
+        const t=state.player.targetTile?Math.min(1,state.player.elapsed / STEP_DURATION):0;
+        const f=t*t*(3-2*t);
+        const start={x:a.x+(b.x-a.x)*f,z:a.z+(b.z-a.z)*f};
+        if(state.storm.requested.rescue) state.storm.rescueStart=start;
+        else state.storm.safeStart={...start,heading:state.player.heading};
+      }
       // Preserve final-word feedback while blocking every gameplay adapter immediately.
       input.clear(); selectionInput.reset(); selection.cancel(); supportInput.clear();
-      state.player.targetTile = null; state.player.elapsed = 0;
+      if (!state.storm || state.storm.requested.rescue) { state.player.targetTile = null; state.player.elapsed = 0; }
       assistance.clearScan(); assistanceUI.close(); grid.setHovered(null);
       for (const element of host.querySelectorAll<HTMLElement>('.quest-hud,.assistance-hud,.support-hud,canvas')) element.inert = true;
     }
@@ -169,7 +179,12 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
       forestReactions?.update(step);
       townReactions?.update(step);
       workshopReactions?.update(step, feedback.isResolving || wordUI.isShowing);
+      const stormWasLocked=stormReactions?.inputLocked;
       stormReactions?.update(step);
+      if(stormWasLocked && !stormReactions?.inputLocked && !locked) {
+        input.clear();selectionInput.reset();
+        for(const element of host.querySelectorAll<HTMLElement>('.quest-hud,.assistance-hud,.support-hud,canvas')) element.inert=false;
+      }
       const previousPresentations = state.quests.presentations.length;
       refreshQuestAvailability(state.quests, state.words);
       if ((workshopReactions || stormReactions) && state.quests.presentations.length > previousPresentations) questUI.render(state.quests, state.words);
