@@ -40,7 +40,7 @@ export interface StageDefinition {
   kind?: 'playable' | 'placeholder';
   nextStageId?: string;
   exit?: ExitDefinition;
-  environment?: 'cottage' | 'forest-blockout' | 'town-blockout' | 'workshop-blockout' | 'storm-blockout';
+  environment?: 'cottage' | 'forest-blockout' | 'town-blockout' | 'workshop-blockout' | 'storm-blockout' | 'archive-blockout';
   townBlockout?: TownBlockout;
   forestBlockout?: ForestBlockout;
   forestProgression?: boolean;
@@ -48,13 +48,16 @@ export interface StageDefinition {
   camera?: { position: readonly [number, number, number]; target: readonly [number, number, number]; verticalSpan: number; minimumWidth: number };
   worldReactions?: WorldReactionMap;
   worldObjects?: Readonly<Record<'key' | 'lamp' | 'plant' | 'book' | 'door', Position>>;
-  tileTheme?: 'forest-stone' | 'town-stone';
+  tileTheme?: 'forest-stone' | 'town-stone' | 'archive-stone';
   grid: GridDefinition;
   supportObjectives?: readonly SupportObjectiveDefinition[];
   wordShardSpawns?: readonly { id: string; row: number; column: number }[];
   letterLayout?: readonly string[];
   vocabulary?: readonly string[];
   quests?: readonly QuestDefinition[];
+  /** Default stages retain timed discovery and automatic completion. */
+  questPresentation?: 'timed' | 'immediate';
+  completionMode?: 'automatic' | 'manual';
   playerStart: { row: number; column: number };
   decorations: readonly (Position & { kind: 'tree' | 'rock'; scale: number })[];
 }

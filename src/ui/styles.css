@@ -199,3 +199,33 @@ canvas { display: block; width: 100%; height: 100%; }
   opacity: .55; cursor: default; background: transparent;
 }
 
+.stage-runtime[data-stage-id='stage-6-word-archive'] .quest-hud__summary { flex: 1; }
+.stage-runtime[data-stage-id='stage-6-word-archive'] .quest-hud__row[data-state='LOCKED'] {
+  opacity: .55; cursor: default; background: transparent;
+}
+
+
+/* Archive finale: a quiet, readable journal above the still-visible scene. */
+.archive-reading,.archive-complete,.archive-fade { position:absolute;inset:0;z-index:110; }
+.archive-reading[hidden] { display:none; }
+.archive-reading,.archive-complete { display:flex;align-items:center;justify-content:center;padding:clamp(12px,3vw,32px);color:#392d21; }
+.archive-reading { background:rgb(28 24 19 / 35%); }
+.archive-paper { --archive-gold:#a87c39;background:#f5ead3;border:1px solid #c5a974;outline:1px solid #d8c398;outline-offset:-9px;box-shadow:0 15px 55px #211b1640;border-radius:12px;padding:clamp(24px,4vw,48px);text-align:center;max-width:620px; }
+.archive-eyebrow { text-transform:uppercase;letter-spacing:.16em;font-size:12px;color:#735b37; }
+.archive-ornament { display:block;color:var(--archive-gold);font-size:26px;margin:8px; }
+.archive-reading h1 { font-family:Georgia,serif;font-weight:normal;font-size:clamp(24px,4vw,38px);line-height:1.45;margin:20px 0 30px; }
+.archive-reading button { min-height:46px;padding:10px 32px;background:#725332;color:#fff8e8;border:1px solid #9a7845;border-radius:7px;font:inherit;cursor:pointer; }
+.archive-reading button:focus-visible,.archive-recap:focus-visible { outline:3px solid #957039;outline-offset:4px; }
+.archive-fade { background:#e9d9ba;pointer-events:none;opacity:0;z-index:65; }
+.archive-complete { background:#e9d9ba;z-index:110; }
+.archive-journal { width:min(860px,100%);max-width:860px;max-height:100%;box-sizing:border-box;display:flex;flex-direction:column;padding:clamp(20px,3vw,36px); }
+.archive-journal h1 { font:clamp(25px,4.5vw,42px) Georgia,serif;letter-spacing:.06em;margin:8px 0; }
+.archive-journal h2 { font:20px Georgia,serif;margin:8px 0; }
+.archive-journal h3 { font:20px Georgia,serif;margin:18px 0 12px; }
+.archive-summary { color:#6c502b;font-weight:600;line-height:1.7; }
+.archive-recap { overflow-y:auto;overscroll-behavior:contain;min-height:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px;text-align:left;padding:0 8px; }
+.archive-recap section { border-top:1px solid #cbb58c;padding:14px 0; }
+.archive-recap h4 { font:17px/1.4 Georgia,serif;margin:0 0 10px; }
+.archive-recap p { font-size:13px;line-height:1.9;letter-spacing:.04em;margin:0;overflow-wrap:anywhere; }
+@media(max-width:600px) { .archive-recap { grid-template-columns:1fr; }.archive-journal header p { margin:8px 0; }.archive-journal .archive-ornament { margin:0; }.archive-summary { font-size:14px; } }
+@media(max-height:500px) { .archive-journal .archive-ornament { display:none; }.archive-journal h1 { font-size:24px; }.archive-journal h2 { font-size:16px; }.archive-journal header p { margin:4px; }.archive-journal h3 { margin:8px; } }

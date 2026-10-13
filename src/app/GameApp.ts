@@ -1,3 +1,5 @@
+import { createArchiveFinaleOverlay } from '../ui/ArchiveFinaleOverlay.ts';
+import { createArchiveWorldState, ArchiveReactionController } from '../simulation/ArchiveWorldState.ts';
 import { STEP_DURATION } from '../simulation/update.ts';
 import { createStormWorldState, StormReactionController } from '../simulation/StormWorldState.ts';
 import { createWorkshopWorldState, WorkshopReactionController } from '../simulation/WorkshopWorldState.ts';
@@ -53,10 +55,11 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
   let view: GameView;
   try { view = new GameView(host, stage, grid); }
   catch (error) { console.error(error); ui.message('This scene needs WebGL 2. Please enable hardware acceleration or try another browser.'); return { lock() {}, dispose() { ui.dispose(); host.remove(); } }; }
-  const state = createGameState(stage.playerStart, stage.grid, stage.quests);
+  const state = createGameState(stage.playerStart, stage.grid, stage.quests, stage.questPresentation);
   const workshopReactions = stage.environment === 'workshop-blockout' ? new WorkshopReactionController(state.workshop = createWorkshopWorldState(state.words), state.words) : undefined;
   const stormReactions = stage.environment === 'storm-blockout' ? new StormReactionController(state.storm = createStormWorldState(state.words), state.words) : undefined;
-  const gameplayLocked = () => locked || !!workshopReactions?.inputLocked || !!stormReactions?.inputLocked;
+  const archiveReactions = stage.environment === 'archive-blockout' ? new ArchiveReactionController(state.archive = createArchiveWorldState(state.words), state.words, state.quests) : undefined;
+  const gameplayLocked = () => locked || !!workshopReactions?.inputLocked || !!stormReactions?.inputLocked || !!archiveReactions?.inputLocked;
   const forestReactions = stage.forestProgression ? new ForestReactionController(state.forest = createForestWorldState(state.words)) : undefined;
   if (stage.forestProgression) state.traversal = createForestTraversal(stage);
   const ending = stage.forestProgression ? new ForestEndingController(stage) : undefined;
@@ -77,7 +80,7 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
     state.quests.focusedIndex = index;
     state.quests.pendingAdvanceId = null;
     questUI.render(state.quests, state.words);
-  }, !!stage.townProgression || stage.environment === 'workshop-blockout' || stage.environment === 'storm-blockout');
+  }, !!stage.townProgression || stage.environment === 'workshop-blockout' || stage.environment === 'storm-blockout' || stage.environment === 'archive-blockout');
   questUI.render(state.quests, state.words);
   const wordUI = createWordSelectionOverlay(host, () => {
     finishQuestFeedback(state.quests, state.words); questUI.render(state.quests, state.words);
@@ -85,13 +88,20 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
   const validate = createQuestValidator(state.quests.definitions, state.words);
   const feedback = new WordFeedback(grid);
   const selection = new WordSelection(grid, submission => {
-    if (gameplayLocked() || feedback.isResolving) return;
+    if (gameplayLocked() || feedback.isResolving || archiveReactions?.isBusy) return;
     // Finish any older visible feedback before queuing this submission's advance.
     wordUI.clear();
-    const result = resolveQuestWord(state.quests, state.words, submission, validate, id => { reactions.onQuestCompleted(id); forestReactions?.onQuestCompleted(id); townReactions?.onQuestCompleted(id); workshopReactions?.onQuestCompleted(id); stormReactions?.onQuestCompleted(id); completion.check(state.quests, state.words); onQuestCompleted(id); });
+    const result = resolveQuestWord(state.quests, state.words, submission, validate, id => { reactions.onQuestCompleted(id); forestReactions?.onQuestCompleted(id); townReactions?.onQuestCompleted(id); workshopReactions?.onQuestCompleted(id); stormReactions?.onQuestCompleted(id); archiveReactions?.onQuestCompleted(id); completion.check(state.quests, state.words); onQuestCompleted(id); });
     feedback.begin(result);
     wordUI.show(result);
-    if (workshopReactions?.inputLocked || stormReactions?.inputLocked) {
+    if (workshopReactions?.inputLocked || stormReactions?.inputLocked || archiveReactions?.inputLocked) {
+      if(state.archive?.requested.exit&&!state.archive.exitStart){
+        const a=grid.getTile(state.player.currentTile.row,state.player.currentTile.column)!.worldPosition;
+        const b=state.player.targetTile?grid.getTile(state.player.targetTile.row,state.player.targetTile.column)!.worldPosition:a;
+        const t=state.player.targetTile?Math.min(1,state.player.elapsed/STEP_DURATION):0,f=t*t*(3-2*t);
+        state.archive.exitStart={x:a.x+(b.x-a.x)*f,z:a.z+(b.z-a.z)*f};
+        state.archive.playerPose={...state.archive.exitStart,y:0,heading:state.player.heading};
+      }
       if (state.storm && !state.storm.playerPose) {
         const a=grid.getTile(state.player.currentTile.row,state.player.currentTile.column)!.worldPosition;
         const b=state.player.targetTile?grid.getTile(state.player.targetTile.row,state.player.targetTile.column)!.worldPosition:a;
@@ -103,7 +113,7 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
       }
       // Preserve final-word feedback while blocking every gameplay adapter immediately.
       input.clear(); selectionInput.reset(); selection.cancel(); supportInput.clear();
-      if (!state.storm || state.storm.requested.rescue) { state.player.targetTile = null; state.player.elapsed = 0; }
+      if ((!state.storm || state.storm.requested.rescue) && !state.archive) { state.player.targetTile = null; state.player.elapsed = 0; }
       assistance.clearScan(); assistanceUI.close(); grid.setHovered(null);
       for (const element of host.querySelectorAll<HTMLElement>('.quest-hud,.assistance-hud,.support-hud,canvas')) element.inert = true;
     }
@@ -112,7 +122,7 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
   });
   const tracker = new PlayerTileTracker(grid); tracker.update(state.player.currentTile);
   const selectionInput = new WordSelectionInput(view.renderer.domElement, () => {
-    if (gameplayLocked() || lost || document.hidden || feedback.isResolving || !isOnLetterGrid(state)) return false;
+    if (gameplayLocked() || lost || document.hidden || feedback.isResolving || archiveReactions?.isBusy || !isOnLetterGrid(state)) return false;
     tracker.update(state.player.currentTile);
     return selection.start(tracker.currentPlayerTile);
   }, () => { selection.submit(); }, () => selection.cancel());
@@ -144,15 +154,21 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
     host.classList.add('stage-runtime--locked');
     for (const element of host.querySelectorAll<HTMLElement>('.quest-hud,.assistance-hud,.support-hud,.overlay,.word-selection,.new-quest,canvas')) element.inert = true;
   };
+  const archiveUI=archiveReactions?createArchiveFinaleOverlay(host,()=>{
+    archiveReactions.acknowledgeReading();input.clear();selectionInput.reset();selection.cancel();
+    for(const element of host.querySelectorAll<HTMLElement>('.quest-hud,.assistance-hud,.support-hud,canvas'))element.inert=false;
+    view.renderer.domElement.focus();
+  }):undefined;
   const completion = new StageCompletionController(stage.id, id => {
     lock();
-    completeUI = createStageCompleteOverlay(host, {
+    if(archiveUI)archiveUI.complete();
+    else completeUI = createStageCompleteOverlay(host, {
       title: stage.title ?? stage.id,
       vocabulary: (stage.vocabulary ?? state.quests.definitions.map(q => q.targetWord)).filter(word => state.words.completedWords.includes(word)),
       hasNextStage: !!stage.nextStageId
     }, onNext);
     onStageCompleted(id);
-  });
+  }, stage.completionMode !== 'manual' || !!archiveReactions);
   const abort = new AbortController();
   let lastTime = 0, accumulator = 0, lost = false;
   const step = 1 / 60;
@@ -185,35 +201,42 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
         input.clear();selectionInput.reset();
         for(const element of host.querySelectorAll<HTMLElement>('.quest-hud,.assistance-hud,.support-hud,canvas')) element.inert=false;
       }
+      const archiveWasBusy=archiveReactions?.isBusy;
+      archiveReactions?.update(step);
+      if (archiveWasBusy && !archiveReactions?.isBusy) questUI.render(state.quests, state.words);
       const previousPresentations = state.quests.presentations.length;
+      const previousDiscovered = state.quests.discoveredIds.length;
       refreshQuestAvailability(state.quests, state.words);
-      if ((workshopReactions || stormReactions) && state.quests.presentations.length > previousPresentations) questUI.render(state.quests, state.words);
+      if (state.quests.discoveredIds.length > previousDiscovered || ((workshopReactions || stormReactions) && state.quests.presentations.length > previousPresentations)) questUI.render(state.quests, state.words);
       if ((workshopReactions && !workshopReactions.notificationsHeld) || (stormReactions && !stormReactions.notificationsHeld)) {
         // These stage controllers already supplied the reaction completion buffer.
         for (const item of state.quests.presentations) item.remaining = Math.min(item.remaining, 3.2);
       }
-      if (!workshopReactions?.notificationsHeld && !stormReactions?.notificationsHeld && updateQuestPresentation(state.quests, step)) questUI.render(state.quests, state.words);
+      if (!workshopReactions?.notificationsHeld && !stormReactions?.notificationsHeld && !archiveReactions?.notificationsHeld && updateQuestPresentation(state.quests, step)) questUI.render(state.quests, state.words);
       if (!gameplayLocked() && isOnLetterGrid(state) && tracker.update(state.player.currentTile)) selection.enterTile(tracker.currentPlayerTile);
       grid.update(step); feedback.update(step); accumulator -= step;
-      const reactionsBusy = reactions.isBusy || !!stormReactions?.isBusy || !!workshopReactions?.isBusy || !!forestReactions?.isBusy || !!townReactions?.isBusy || view.reactionsBusy(state);
+      const reactionsBusy = reactions.isBusy || !!archiveReactions?.isBusy || !!stormReactions?.isBusy || !!workshopReactions?.isBusy || !!forestReactions?.isBusy || !!townReactions?.isBusy || view.reactionsBusy(state);
       if (!locked && ending?.tryStart(state, reactionsBusy || feedback.isResolving)) lock();
       if (!locked && townEnding?.tryStart(state, reactionsBusy || feedback.isResolving)) lock();
       ending?.update(step);
       townEnding?.update(step, state);
-      completion.update(step, reactionsBusy || (!!ending && !ending.isFinished) || (!!townEnding && !townEnding.isFinished), feedback.isResolving);
+      completion.update(step, reactionsBusy || (!!archiveReactions && !archiveReactions.canCompleteStage) || (!!ending && !ending.isFinished) || (!!townEnding && !townEnding.isFinished), feedback.isResolving);
     }
+    if(state.archive)archiveUI?.update(state.archive);
     renderAssistance(dt);
     wordUI.update(selection, dt);
-    narrativeUI.update(state.quests, !!workshopReactions?.notificationsHeld || !!stormReactions?.notificationsHeld);
+    narrativeUI.update(state.quests, !!archiveReactions?.notificationsHeld || !!workshopReactions?.notificationsHeld || !!stormReactions?.notificationsHeld);
     view.render(state, dt, feedback.isResolving ? feedback.selectedTiles : selection.selectedTiles, feedback.visual, assistance, support);
     if (!gameplayLocked()) pointer.refresh();
   });
   return { lock, unlock() {
-    if (completeUI || workshopReactions?.inputLocked || stormReactions?.inputLocked || ending?.inputLocked || townEnding?.inputLocked) return;
+    if (completeUI || archiveReactions?.inputLocked || workshopReactions?.inputLocked || stormReactions?.inputLocked || ending?.inputLocked || townEnding?.inputLocked) return;
     locked = false; input.clear(); host.classList.remove('stage-runtime--locked');
     for (const element of host.querySelectorAll<HTMLElement>('[inert]')) element.inert = false;
-  }, dispose() { view.renderer.setAnimationLoop(null); abort.abort(); assistance.clearScan(); assistanceUI.dispose(); supportInput.dispose(); supportUI.dispose(); completeUI?.dispose(); narrativeUI.dispose(); selectionInput.dispose(); wordUI.dispose(); questUI.dispose(); pointer.dispose(); input.dispose(); view.dispose(); ui.dispose(); host.remove(); } };
+  }, dispose() { view.renderer.setAnimationLoop(null); abort.abort(); archiveUI?.dispose(); assistance.clearScan(); assistanceUI.dispose(); supportInput.dispose(); supportUI.dispose(); completeUI?.dispose(); narrativeUI.dispose(); selectionInput.dispose(); wordUI.dispose(); questUI.dispose(); pointer.dispose(); input.dispose(); view.dispose(); ui.dispose(); host.remove(); } };
 }
+
+
 
 
 

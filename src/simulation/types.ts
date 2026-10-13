@@ -1,3 +1,4 @@
+import type { ArchiveWorldState } from './ArchiveWorldState.ts';
 import type { StormWorldState } from './StormWorldState.ts';
 import type { WorkshopWorldState } from './WorkshopWorldState.ts';
 import type { ExitState } from './ExitInteraction.ts';
@@ -13,6 +14,7 @@ import type { TownEndingState } from './TownEndingController.ts';
 export interface Position { x: number; z: number }
 export interface MoveAction { x: number; z: number }
 export interface GameState {
+  archive?: ArchiveWorldState;
   storm?: StormWorldState;
   workshop?: WorkshopWorldState;
   town?: TownWorldState;
@@ -27,5 +29,6 @@ export interface GameState {
   player: { currentTile: GridCoordinate; targetTile: GridCoordinate | null; elapsed: number; heading: number };
 }
 export interface MovementBounds { minX: number; maxX: number; minZ: number; maxZ: number }
+
 
 

@@ -32,6 +32,13 @@ export class PrimitiveAssets {
     body: new THREE.CylinderGeometry(0.19, 0.27, 0.46, 8)
   };
   readonly material = {
+    archiveFloor: this.make('#939b9d'), archiveEdge: this.make('#626e79'),
+    archiveStone: this.make('#a5adb0'), archiveLimestone: this.make('#c7bda6'),
+    archiveRecess: this.make('#515d69'), archiveDoor: this.make('#858f98'),
+    archiveWood: this.make('#66554b'), archiveBook: this.make('#657c87'),
+    archivePaper: this.make('#d5c7a7'), archiveGold: this.make('#ad925e'),
+    archiveBackdrop: this.make('#89939f'),
+    archiveLamp: new THREE.MeshStandardMaterial({ color: '#e9bd78', emissive: '#e9a44d', emissiveIntensity: .7, roughness: 1 }),
     stormEarth: this.make('#555e57'), stormEdge: this.make('#414c4c'),
     stormWood: this.make('#786653'), stormRoof: this.make('#4c5a55'),
     stormDry: this.make('#8a8975'), stormMat: this.make('#b5a084'),

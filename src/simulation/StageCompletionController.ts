@@ -8,9 +8,10 @@ export class StageCompletionController {
   private settle = 0;
   private stageId: string;
   private onCompleted: (id: string) => void;
-  constructor(stageId: string, onCompleted: (id: string) => void) { this.stageId = stageId; this.onCompleted = onCompleted; }
+  private automatic: boolean;
+  constructor(stageId: string, onCompleted: (id: string) => void, automatic = true) { this.stageId = stageId; this.onCompleted = onCompleted; this.automatic = automatic; }
   check(quests: QuestProgress, words: WordProgress): void {
-    if (this.pending || this.emitted) return;
+    if (!this.automatic || this.pending || this.emitted) return;
     this.pending = quests.definitions.length > 0 && quests.definitions.every(q => questStatus(q, words) === 'COMPLETED');
   }
   update(dt: number, reactionsBusy: boolean, feedbackBusy: boolean): void {

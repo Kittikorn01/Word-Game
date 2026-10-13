@@ -3,10 +3,12 @@ import { createTownBlockout } from './createTownBlockout.ts';
 import { createWorkshopBlockout } from './createWorkshopBlockout.ts';
 import { createCottage } from './createCottage.ts';
 import { createStormBlockout } from './createStormBlockout.ts';
+import { createArchiveBlockout } from './createArchiveBlockout.ts';
 import { Group } from 'three';
 import type { PrimitiveAssets } from '../assets/PrimitiveAssets.ts';
 import type { StageDefinition } from '../stages/types.ts';
 export function createDiorama(stage: StageDefinition, assets: PrimitiveAssets): Group {
+  if (stage.environment === 'archive-blockout') return createArchiveBlockout(assets);
   if (stage.environment === 'storm-blockout') return createStormBlockout(assets);
   if (stage.environment === 'workshop-blockout') return createWorkshopBlockout(assets);
   if (stage.environment === 'town-blockout' && stage.townBlockout) return createTownBlockout(stage.townBlockout, assets);

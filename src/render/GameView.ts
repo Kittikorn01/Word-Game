@@ -1,3 +1,4 @@
+import { ArchiveReactionView } from './ArchiveReactionView.ts';
 import { StormReactionView } from './StormReactionView.ts';
 import { WorkshopReactionView } from './WorkshopReactionView.ts';
 import { StormWeatherView } from './StormWeatherView.ts';
@@ -41,6 +42,7 @@ export class GameView {
   private workshop?: WorkshopReactionView;
   private stormWeather?: StormWeatherView;
   private storm?: StormReactionView;
+  private archive?: ArchiveReactionView;
   private shards: WordShardView;
   private letters: LetterGridView;
   private selectionPath = new SelectionPathView();
@@ -67,8 +69,9 @@ export class GameView {
     } else {
     const workshop = stage.environment === 'workshop-blockout';
     const storm = stage.environment === 'storm-blockout';
-    this.scene.add(new THREE.HemisphereLight(storm ? '#d1e0ef' : '#fff7df', storm ? '#56635f' : workshop ? '#777b76' : '#849580', storm ? 1.8 : workshop ? 1.7 : 2.1));
-    const sun = new THREE.DirectionalLight(storm ? '#c4d6e6' : '#fff0d3', storm ? 1.35 : workshop ? 2 : 3);
+    const archive = stage.environment === 'archive-blockout';
+    this.scene.add(new THREE.HemisphereLight(archive ? '#e3e8ee' : storm ? '#d1e0ef' : '#fff7df', archive ? '#7b756b' : storm ? '#56635f' : workshop ? '#777b76' : '#849580', archive ? 2 : storm ? 1.8 : workshop ? 1.7 : 2.1));
+    const sun = new THREE.DirectionalLight(archive ? '#ffe6bf' : storm ? '#c4d6e6' : '#fff0d3', archive ? 1.55 : storm ? 1.35 : workshop ? 2 : 3);
     sun.position.set(-5, 12, 7); sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024);
     Object.assign(sun.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: 0.5, far: 35 });
@@ -83,6 +86,11 @@ export class GameView {
       ground.material = this.assets.material.workshopBackdrop;
       this.renderer.setClearColor('#bbb8ac');
     }
+    if (stage.environment === 'archive-blockout') {
+      ground.name = 'archive-backdrop'; ground.material = this.assets.material.archiveBackdrop;
+      this.renderer.setClearColor('#89939f');
+      this.renderer.domElement.setAttribute('aria-label', 'An ancient underground archive with a letter grid, upper and lower stone mechanisms, a closed book and a sealed final door.');
+    }
     if (this.outsideMaterial) { ground.material = this.outsideMaterial; ground.receiveShadow = false; }
     if (stage.environment === 'storm-blockout') {
       ground.name = 'storm-sky-backdrop'; ground.material = this.assets.material.stormBackdrop;
@@ -92,6 +100,7 @@ export class GameView {
     }
     this.scene.add(ground, createDiorama(stage, this.assets), this.player);
     if (stage.environment === 'storm-blockout') { this.storm = new StormReactionView(this.scene); this.scene.add(this.storm.root); }
+    if (stage.environment === 'archive-blockout') { this.archive = new ArchiveReactionView(this.scene, this.assets); this.scene.add(this.archive.root); }
     if (stage.environment === 'workshop-blockout') { this.workshop = new WorkshopReactionView(this.scene); this.scene.add(this.workshop.root); }
     if (stage.townProgression) { this.town = new TownReactionView(stage, this.scene); this.scene.add(this.town.root); }
     if (stage.forestBlockout?.river) { this.river = new RiverView(stage.forestBlockout); this.scene.add(this.river.root); }
@@ -119,6 +128,7 @@ export class GameView {
     this.river?.update(dt, state.forest);
     this.stormWeather?.update(dt, state.storm);
     if (state.storm) this.storm?.update(state.storm);
+    if (state.archive) this.archive?.update(state.archive);
     if (state.forest) this.forest?.update(state.forest);
     if (state.town) this.town?.update(state);
     if (state.workshop) this.workshop?.update(state.workshop);
@@ -134,7 +144,8 @@ export class GameView {
     const x = THREE.MathUtils.lerp(from.x, to.x, eased), z = THREE.MathUtils.lerp(from.z, to.z, eased);
     this.world?.update(state.world, dt, {x,z});
     const scripted = state.townEnding?.pose ? state.townEnding : state.ending;
-    const rescue=state.storm?.playerPose;
+    const rescue=state.archive?.playerPose ?? state.storm?.playerPose;
+    this.player.visible = !state.archive || state.archive.fade === 0;
     const route = rescue ?? scripted?.pose ?? traversalPose(state);
     this.player.position.set(route?.x ?? x, .105 + (route?.y ?? 0), route?.z ?? z);
     const currentLetter = this.grid.getTile(current.row, current.column);
@@ -148,6 +159,7 @@ export class GameView {
     this.town?.dispose();
     this.workshop?.dispose();
     this.storm?.dispose();
+    this.archive?.dispose();
     this.stormWeather?.dispose();
     this.river?.dispose();
     this.shards.dispose();
@@ -157,6 +169,7 @@ export class GameView {
     this.world?.dispose(); this.floatingLetter.dispose(); this.selectionPath.dispose(); this.letters.dispose(); this.assets.dispose(); this.renderer.dispose(); this.renderer.domElement.remove();
   }
 }
+
 
 
 

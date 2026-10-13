@@ -7,12 +7,13 @@ import { resolveWord } from './WordProgress.ts';
 
 export interface QuestProgress {
   readonly definitions: readonly QuestDefinition[];
+  readonly presentationMode: 'timed' | 'immediate';
   discoveredIds: string[];
   presentations: { questId: string; remaining: number }[];
   focusedIndex: number;
   pendingAdvanceId: string | null;
 }
-export function createQuestProgress(definitions: readonly QuestDefinition[] = []): QuestProgress {
+export function createQuestProgress(definitions: readonly QuestDefinition[] = [], presentationMode: QuestProgress['presentationMode'] = 'timed'): QuestProgress {
   const ids = new Set<string>(), targets = new Set<string>();
   const quests = definitions.map(quest => {
     const targetWord = normalizeWord(quest.targetWord);
@@ -36,7 +37,7 @@ export function createQuestProgress(definitions: readonly QuestDefinition[] = []
   };
   quests.forEach(visit);
   const discoveredIds = quests.filter(q => !q.requires.length && !q.requiresWorld).map(q => q.id);
-  return { definitions: Object.freeze(quests), discoveredIds, presentations: [], focusedIndex: Math.max(0,quests.findIndex(q => discoveredIds.includes(q.id))), pendingAdvanceId: null };
+  return { definitions: Object.freeze(quests), presentationMode, discoveredIds, presentations: [], focusedIndex: Math.max(0,quests.findIndex(q => discoveredIds.includes(q.id))), pendingAdvanceId: null };
 }
 /** Completed words are the single canonical completion ledger. */
 export function questStatus(quest: QuestDefinition, words: WordProgress): QuestStatus {
@@ -70,7 +71,8 @@ export function refreshQuestAvailability(progress: QuestProgress, words: WordPro
   for (const quest of progress.definitions) {
     if (questStatus(quest, words) === 'AVAILABLE' && !progress.discoveredIds.includes(quest.id) &&
       !progress.presentations.some(p => p.questId === quest.id)) {
-      progress.presentations.push({ questId: quest.id, remaining: 3.5 });
+      if (progress.presentationMode === 'immediate') progress.discoveredIds.push(quest.id);
+      else progress.presentations.push({ questId: quest.id, remaining: 3.5 });
     }
   }
 }
