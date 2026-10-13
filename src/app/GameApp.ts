@@ -1,3 +1,4 @@
+import { showTutorial } from '../ui/AdventureIntro.ts';
 import { createArchiveFinaleOverlay } from '../ui/ArchiveFinaleOverlay.ts';
 import { createArchiveWorldState, ArchiveReactionController } from '../simulation/ArchiveWorldState.ts';
 import { STEP_DURATION } from '../simulation/update.ts';
@@ -48,7 +49,8 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
     host.append(label, title, note, shards); title.tabIndex = -1; title.focus();
     return { lock() {}, dispose() { host.remove(); } };
   }
-  let locked = false;
+  let locked = false, tutorialOpen = false;
+  let tutorial: ReturnType<typeof showTutorial> | undefined;
   let completeUI: ReturnType<typeof createStageCompleteOverlay> | undefined;
   const ui = createOverlay(host);
   const grid = new LetterGrid(stage.id, stage.grid, stage.letterLayout ?? []);
@@ -59,7 +61,7 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
   const workshopReactions = stage.environment === 'workshop-blockout' ? new WorkshopReactionController(state.workshop = createWorkshopWorldState(state.words), state.words) : undefined;
   const stormReactions = stage.environment === 'storm-blockout' ? new StormReactionController(state.storm = createStormWorldState(state.words), state.words) : undefined;
   const archiveReactions = stage.environment === 'archive-blockout' ? new ArchiveReactionController(state.archive = createArchiveWorldState(state.words), state.words, state.quests) : undefined;
-  const gameplayLocked = () => locked || !!workshopReactions?.inputLocked || !!stormReactions?.inputLocked || !!archiveReactions?.inputLocked;
+  const gameplayLocked = () => locked || tutorialOpen || !!workshopReactions?.inputLocked || !!stormReactions?.inputLocked || !!archiveReactions?.inputLocked;
   const forestReactions = stage.forestProgression ? new ForestReactionController(state.forest = createForestWorldState(state.words)) : undefined;
   if (stage.forestProgression) state.traversal = createForestTraversal(stage);
   const ending = stage.forestProgression ? new ForestEndingController(stage) : undefined;
@@ -91,7 +93,7 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
     if (gameplayLocked() || feedback.isResolving || archiveReactions?.isBusy) return;
     // Finish any older visible feedback before queuing this submission's advance.
     wordUI.clear();
-    const result = resolveQuestWord(state.quests, state.words, submission, validate, id => { reactions.onQuestCompleted(id); forestReactions?.onQuestCompleted(id); townReactions?.onQuestCompleted(id); workshopReactions?.onQuestCompleted(id); stormReactions?.onQuestCompleted(id); archiveReactions?.onQuestCompleted(id); completion.check(state.quests, state.words); onQuestCompleted(id); });
+    const result = resolveQuestWord(state.quests, state.words, submission, validate, id => { assistance.rewardQuest(id); assistanceUI.message('New word solved · Word Shard +1'); reactions.onQuestCompleted(id); forestReactions?.onQuestCompleted(id); townReactions?.onQuestCompleted(id); workshopReactions?.onQuestCompleted(id); stormReactions?.onQuestCompleted(id); archiveReactions?.onQuestCompleted(id); completion.check(state.quests, state.words); onQuestCompleted(id); });
     feedback.begin(result);
     wordUI.show(result);
     if (workshopReactions?.inputLocked || stormReactions?.inputLocked || archiveReactions?.inputLocked) {
@@ -147,6 +149,14 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
     supportUI.render(state.player.currentTile, supportBlocked());
     questUI.renderHint(assistance.hintText(state.quests, state.words));
   };
+  const help = document.createElement('button');
+  help.type = 'button'; help.className = 'how-to-play'; help.textContent = '? How to play';
+  help.addEventListener('click', () => {
+    if (gameplayLocked() || feedback.isResolving || state.player.targetTile) return;
+    tutorialOpen = true; input.clear(); selectionInput.reset(); selection.cancel();
+    tutorial = showTutorial(host, () => { tutorialOpen = false; input.clear(); help.blur(); view.renderer.domElement.focus(); });
+  });
+  host.append(help);
   const narrativeUI = createNarrativeOverlay(host);
   const lock = () => {
     locked = true; assistance.clearScan(); assistanceUI.close(); supportInput.clear(); input.clear(); selectionInput.reset(); selection.cancel();
@@ -233,7 +243,7 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
     if (completeUI || archiveReactions?.inputLocked || workshopReactions?.inputLocked || stormReactions?.inputLocked || ending?.inputLocked || townEnding?.inputLocked) return;
     locked = false; input.clear(); host.classList.remove('stage-runtime--locked');
     for (const element of host.querySelectorAll<HTMLElement>('[inert]')) element.inert = false;
-  }, dispose() { view.renderer.setAnimationLoop(null); abort.abort(); archiveUI?.dispose(); assistance.clearScan(); assistanceUI.dispose(); supportInput.dispose(); supportUI.dispose(); completeUI?.dispose(); narrativeUI.dispose(); selectionInput.dispose(); wordUI.dispose(); questUI.dispose(); pointer.dispose(); input.dispose(); view.dispose(); ui.dispose(); host.remove(); } };
+  }, dispose() { tutorial?.dispose(); view.renderer.setAnimationLoop(null); abort.abort(); archiveUI?.dispose(); assistance.clearScan(); assistanceUI.dispose(); supportInput.dispose(); supportUI.dispose(); completeUI?.dispose(); narrativeUI.dispose(); selectionInput.dispose(); wordUI.dispose(); questUI.dispose(); pointer.dispose(); input.dispose(); view.dispose(); ui.dispose(); host.remove(); } };
 }
 
 

@@ -72,3 +72,16 @@ test('actual stage transition carries player ledger and resets stage-owned assis
  await manager.next(); assert.equal(mounted[1].wordShards,3); assert.equal(mounted[1].hintProgressByQuest.size,0); assert.equal(mounted[1].collectedPickupIds.size,0);
  manager.dispose();
 });
+
+test('new quest rewards replenish assistance once per quest and carry across stages', () => {
+ const {resources,assistance:a,state:s} = setup();
+ resources.wordShards=0;
+ assert.equal(a.rewardQuest('key-quest'),1);
+ assert.equal(a.rewardQuest('key-quest'),0);
+ assert.equal(a.rewardQuest(''),0);
+ assert.equal(resources.wordShards,1);
+ assert.equal(a.requestHint(s.quests,s.words,false),'');
+ assert.equal(resources.wordShards,0);
+ assert.equal(a.rewardQuest('light-quest'),1);
+ assert.equal(new AssistanceState(resources).wordShards,1);
+});

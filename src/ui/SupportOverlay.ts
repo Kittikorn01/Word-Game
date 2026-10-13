@@ -11,7 +11,7 @@ export function createSupportOverlay(host: HTMLElement, support: SupportObjectiv
     render(tile: GridCoordinate, blocked: boolean) {
       for (const {d,row} of rows) {
         const done = support.completedIds.has(d.id);
-        const text = `${done ? '\u2713' : '\u25c7'} ${d.label} ${done ? '' : 'Reward: \u25c7' + d.reward}`;
+        const text = `${done ? '\u2713' : '\u25c7'} ${d.label} ${done ? '' : 'Reward: \u25c7' + d.reward + ` · row ${d.tile.row + 1}, col ${d.tile.column + 1}`}`;
         if (row.textContent !== text) row.textContent = text; row.dataset.complete = String(done);
       }
       const near = support.nearby(tile);

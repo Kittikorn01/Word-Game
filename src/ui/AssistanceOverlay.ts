@@ -35,6 +35,9 @@ export function createAssistanceOverlay(host: HTMLElement, actions: {
     if (event.target === input || event.key === 'Enter' || event.key === ' ') event.stopPropagation();
   }, options);
   element.addEventListener('pointerdown', event => event.stopPropagation(), options);
+  const guide = document.createElement('details'); guide.className = 'assistance-help';
+  guide.innerHTML = '<summary>Need hints? How to earn ◇</summary><div>Hint: select a quest, then reveal one letter (◇ 1). The final letter stays hidden.<br>Scan: enter A–Z to highlight matching tiles for 3 seconds (◇ 1).<br>Earn ◇ 1 for each new solved quest. Room Discoveries also give shards: find the listed tile, stop, then press E. Each reward is available once per stage.</div>';
+  element.append(guide);
   host.append(element);
   return {
     message, close,

@@ -11,12 +11,19 @@ export interface ScanState { letter: string; tileIds: ReadonlySet<string>; remai
 /** Stage-owned rules; the resource ledger is shared across stage mounts. */
 export class AssistanceState {
   readonly hintProgressByQuest = new Map<string, number>();
+  private rewardedQuestIds = new Set<string>();
   readonly collectedPickupIds = new Set<string>();
   scanState: ScanState | null = null;
   private resources: PlayerResources;
   private spawns: NonNullable<StageDefinition['wordShardSpawns']>;
   constructor(resources: PlayerResources, spawns: StageDefinition['wordShardSpawns'] = []) {
     this.resources = resources; this.spawns = spawns;
+  }
+  rewardQuest(questId: string): number {
+    if (!questId || this.rewardedQuestIds.has(questId)) return 0;
+    this.rewardedQuestIds.add(questId);
+    this.resources.wordShards++;
+    return 1;
   }
   get wordShards(): number { return this.resources.wordShards; }
   unavailable(blocked: boolean): string {
