@@ -253,11 +253,23 @@ button.adventure-primary { background:#365b42; border-color:#365b42; color:#fff7
 .adventure-paper p { font-size:14px; line-height:1.65; }
 .tutorial-instructions span { color:#687263; }
 .practice { padding:18px; border:1px solid #d7c79f; border-radius:12px; background:#eee7d2; }
-.practice-board { display:flex; gap:10px; width:max-content; padding:8px; margin:10px 0; border-radius:8px; }
-.practice-board span { width:55px; height:55px; display:grid; place-items:center; background:#fff9e9; border:2px solid #baa779; border-radius:8px; font-size:25px; font-weight:700; position:relative; }
+.practice-board { display:flex; gap:clamp(3px,1vw,10px); width:100%; box-sizing:border-box; padding:8px 2px 18px; margin:10px 0; border-radius:8px; }
+.practice-board span { width:clamp(25px,8vw,55px); height:clamp(36px,8vw,55px); flex:1 1 0; max-width:55px; display:grid; place-items:center; background:#fff9e9; border:2px solid #baa779; border-radius:8px; font-size:25px; font-weight:700; position:relative; }
 .practice-board .is-selected { background:#bed4b5; border-color:#47734e; }
 .practice-board .is-player::after { content:'●'; position:absolute; bottom:-12px; font-size:19px; color:#ac6139; }
 .how-to-play { position:absolute; top:20px; right:20px; padding:10px 14px; border:1px solid #c5b892; border-radius:9px; background:#faf3e3; color:#365b42; font:600 13px 'Segoe UI',sans-serif; cursor:pointer; }
 .assistance-help { margin-top:10px; font-size:11px; line-height:1.6; }
 .assistance-help summary { cursor:pointer; font-weight:700; }
 @media(max-height:700px) { .cottage-emblem { transform:scale(.75); margin:-5px auto 0; height:155px; } .adventure-cover h1 { font-size:48px; } }
+
+.practice-board .is-next { outline:2px dashed #a77931; outline-offset:2px; }
+.practice-step { min-height:3.3em; font-weight:600; }
+
+.tutorial-coach { position:absolute; top:20px; left:20px; width:min(340px,calc(100% - 40px)); box-sizing:border-box; padding:20px; border:1px solid #b4b99b; border-radius:16px; background:#faf4e8ef; box-shadow:0 10px 30px #283b251a; color:#354b3d; }
+.tutorial-coach h1 { font:normal 25px Georgia,serif; margin:8px 0; }
+.tutorial-coach p { font-size:14px; line-height:1.6; }
+.tutorial-coach [data-instruction] { font-weight:700; min-height:45px; }
+.tutorial-coach [data-word] { color:#815b25; font-weight:700; }
+.tutorial-coach button { cursor:pointer; background:#eee6d2; color:#354b3d; border:1px solid #c1b393; border-radius:7px; padding:8px; margin-right:5px; }
+.stage-intro__story { max-width:510px; margin:24px auto 0; font-size:clamp(15px,2vw,20px); line-height:1.7; padding:0 24px; }
+@media (max-width:900px) { .tutorial-coach { top:auto; bottom:12px; left:12px; width:calc(100% - 24px); padding:10px 16px; } .tutorial-coach h1,.tutorial-coach .adventure-eyebrow { display:none; } .tutorial-coach p { margin:4px 0; } .tutorial-coach [data-instruction] { min-height:0; } .tutorial-runtime canvas { transform:translateY(-65px); } }

@@ -125,6 +125,8 @@ export class GameView {
   reactionsBusy(state: GameState): boolean { return this.world?.isBusy(state.world) ?? false; }
   render(state: GameState, dt: number, selectedTiles: readonly LetterTile[] = [], feedback?: FeedbackVisual, assistance?: AssistanceState, support?: SupportObjectives): void {
 
+    const tutorialDoor = this.scene.getObjectByName('tutorial-door');
+    if (tutorialDoor) tutorialDoor.rotation.y = THREE.MathUtils.damp(tutorialDoor.rotation.y, state.world.doorOpen ? -Math.PI * .65 : 0, 4, dt);
     this.river?.update(dt, state.forest);
     this.stormWeather?.update(dt, state.storm);
     if (state.storm) this.storm?.update(state.storm);

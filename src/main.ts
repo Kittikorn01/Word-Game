@@ -1,3 +1,4 @@
+import { mountTutorialStage } from './app/TutorialStage.ts';
 import { createAdventureIntro } from './ui/AdventureIntro.ts';
 import { createPlayerResources } from './simulation/AssistanceState.ts';
 import { mountStage } from './app/GameApp.ts';
@@ -22,7 +23,24 @@ if (import.meta.env.DEV && initialStage.stageNumber === 6) {
     manager.start(); return transition.fadeIn();
   }).catch(error => console.error('Stage preview intro failed', error));
 } else if (previewNumber > 0) manager.start();
-else intro = createAdventureIntro(host, () => manager.start());
+else showWelcome();
+let practice: ReturnType<typeof mountTutorialStage> | undefined;
+let starting = false;
+async function startAdventure() {
+  if (starting || previewDisposed) return;
+  starting = true;
+  await transition.fadeOut();
+  if (previewDisposed) return;
+  await transition.showIntro?.(initialStage);
+  if (previewDisposed) return;
+  manager.start();
+  await transition.fadeIn();
+}
+function showWelcome() {
+  intro = createAdventureIntro(host, () => { void startAdventure(); }, () => {
+    practice = mountTutorialStage(host, () => { void startAdventure(); }, showWelcome);
+  });
+}
 // Reuse direct dev entry: a full reload gives each test a fresh runtime and resources.
 let devNavigation: HTMLElement | undefined;
 if (import.meta.env.DEV) {
@@ -48,4 +66,4 @@ if (import.meta.env.DEV) {
   host.append(devNavigation);
 }
 // Dispose the previous runtime and dev controls during development hot reload.
-if (import.meta.hot) import.meta.hot.dispose(() => { previewDisposed = true; intro?.dispose(); devNavigation?.remove(); manager.dispose(); });
+if (import.meta.hot) import.meta.hot.dispose(() => { previewDisposed = true; intro?.dispose(); practice?.dispose(); devNavigation?.remove(); manager.dispose(); });

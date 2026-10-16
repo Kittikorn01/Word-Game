@@ -8,7 +8,8 @@ export function createStageTransition(host: HTMLElement): StageTransition {
   intro.setAttribute('aria-atomic', 'true');
   const number = document.createElement('p'), title = document.createElement('h1');
   number.className = 'stage-intro__number'; title.className = 'stage-intro__title';
-  intro.append(number, title); element.append(intro); intro.hidden = true;
+  const story = document.createElement('p'); story.className = 'stage-intro__story';
+  intro.append(number, title, story); element.append(intro); intro.hidden = true;
   let disposed = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let finishHold: (() => void) | undefined;
@@ -40,12 +41,15 @@ export function createStageTransition(host: HTMLElement): StageTransition {
       element.removeAttribute('aria-hidden');
       number.textContent = stage.stageNumber === undefined ? 'STAGE' : `STAGE ${stage.stageNumber}`;
       title.textContent = stage.title ?? stage.id;
+      story.textContent = stage.stageNumber === 1 ? 'You step inside. The door closes behind you. Find the words to open it.' : '';
+      story.hidden = stage.stageNumber !== 1;
+      if (stage.stageNumber === 1) number.textContent = 'STAGE 1 · ENTERING THE COTTAGE';
       intro.style.opacity = '0'; intro.hidden = false;
       await animate(intro, [{ opacity: 0 }, { opacity: 1 }], 200);
       if (disposed) return;
       await new Promise<void>(resolve => {
         finishHold = resolve;
-        timer = setTimeout(() => { timer = undefined; finishHold = undefined; resolve(); }, reducedMotion() ? 1800 : 1400);
+        timer = setTimeout(() => { timer = undefined; finishHold = undefined; resolve(); }, stage.stageNumber === 1 ? 2800 : reducedMotion() ? 1800 : 1400);
       });
       if (disposed) return;
       await animate(intro, [{ opacity: 1 }, { opacity: 0 }], 200);

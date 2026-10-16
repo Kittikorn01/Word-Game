@@ -16,7 +16,7 @@ export function createDiorama(stage: StageDefinition, assets: PrimitiveAssets): 
   if (stage.environment === 'cottage') return createCottage(stage, assets);
   const root = new Group();
   const width = stage.grid.columns * stage.grid.tileSize + 3;
-  const depth = stage.grid.rows * stage.grid.tileSize + 3;
+  const depth = stage.grid.rows * stage.grid.tileSize + (stage.environment === 'tutorial-courtyard' ? 7 : 3);
   const base = assets.mesh('box', 'earth'); base.scale.set(width, 0.65, depth); base.position.y = -0.48;
   const turf = assets.mesh('box', 'grass'); turf.scale.set(width, 0.2, depth); turf.position.y = -0.08;
   root.add(base, turf);
@@ -31,6 +31,22 @@ export function createDiorama(stage: StageDefinition, assets: PrimitiveAssets): 
       const rock = assets.mesh('rock', 'rock'); rock.scale.set(1.3, 0.85, 1); rock.position.y = 0.32; rock.rotation.y = item.x; decoration.add(rock);
     }
     root.add(decoration);
+  }
+  if (stage.environment === 'tutorial-courtyard') {
+    const box = (surface: keyof PrimitiveAssets['material'], x: number, y: number, z: number, w: number, h: number, d: number) => {
+      const mesh = assets.mesh('box', surface); mesh.position.set(x,y,z); mesh.scale.set(w,h,d); root.add(mesh); return mesh;
+    };
+    box('plaster', 0, 1.15, -4.2, 3.8, 2.3, 1.7);
+    const roof = assets.mesh('crown', 'leaf'); roof.position.set(0, 3, -4.2); roof.scale.set(3.2, 1.1, 2); root.add(roof);
+    box('boots', 0, .85, -3.32, .95, 1.7, .08);
+    const hinge = new Group(); hinge.name = 'tutorial-door'; hinge.position.set(-.475, 0, -3.24);
+    const door = assets.mesh('box', 'cottageWood'); door.position.set(.475,.85,0); door.scale.set(.95,1.7,.1); hinge.add(door); root.add(hinge);
+    for (const x of [-1.2,1.2]) box('hat', x, 1.35, -3.31, .6, .7, .09);
+    box('earth', 0, .01, -2.9, 1.1, .05, .65);
+    for (const x of [-4,4]) {
+      for (const z of [-2,-.5,1,2.5]) box('cottageWood',x,.45,z,.12,.9,.12);
+      for (const y of [.3,.65]) box('cottageWood',x,y,.25,.09,.09,4.6);
+    }
   }
   return root;
 }
