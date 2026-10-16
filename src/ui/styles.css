@@ -229,3 +229,35 @@ canvas { display: block; width: 100%; height: 100%; }
 .archive-recap p { font-size:13px;line-height:1.9;letter-spacing:.04em;margin:0;overflow-wrap:anywhere; }
 @media(max-width:600px) { .archive-recap { grid-template-columns:1fr; }.archive-journal header p { margin:8px 0; }.archive-journal .archive-ornament { margin:0; }.archive-summary { font-size:14px; } }
 @media(max-height:500px) { .archive-journal .archive-ornament { display:none; }.archive-journal h1 { font-size:24px; }.archive-journal h2 { font-size:16px; }.archive-journal header p { margin:4px; }.archive-journal h3 { margin:8px; } }
+/* Welcome and a safe, replayable practice space. */
+.adventure-intro { position:absolute; inset:0; z-index:30; overflow:auto; display:grid; place-items:center; padding:32px 20px; background:radial-gradient(ellipse at 50% 30%,#edf0d8 0,#d5decd 50%,#a9bdab 100%); }
+.adventure-cover { width:min(680px,100%); text-align:center; color:#324d3d; }
+.adventure-eyebrow { font-size:11px; font-weight:750; letter-spacing:.22em; color:#786239; }
+.adventure-cover h1 { font:normal clamp(44px,7vw,76px)/1.02 Georgia,serif; margin:18px 0; letter-spacing:-.04em; }
+.adventure-cover p:not(.adventure-eyebrow) { line-height:1.7; }
+.adventure-cover small { display:block; line-height:1.8; color:#526958; margin-top:24px; }
+.adventure-actions { display:flex; flex-direction:column; align-items:center; gap:12px; margin-top:24px; }
+.adventure-intro button,.adventure-dialog button { font:600 14px 'Segoe UI',sans-serif; padding:11px 18px; border:1px solid #a9b79d; border-radius:9px; color:#365640; background:#f9f3e4; cursor:pointer; }
+button.adventure-primary { background:#365b42; border-color:#365b42; color:#fff7e1; min-height:48px; padding:13px 30px; box-shadow:0 4px 0 #233e2b; }
+.adventure-intro button:focus-visible,.adventure-dialog :focus-visible { outline:3px solid #a77931; outline-offset:4px; }
+.cottage-emblem { position:relative; width:190px; height:155px; margin:20px auto 30px; filter:drop-shadow(0 12px 8px #536a4325); }
+.cottage-roof { position:absolute; top:0; left:5px; width:180px; height:80px; background:#6c7555; clip-path:polygon(50% 0,100% 100%,0 100%); }
+.cottage-wall { position:absolute; bottom:0; left:25px; width:140px; height:80px; background:#f4e7c9; border:6px solid #8b7856; display:flex; justify-content:space-around; align-items:center; }
+.cottage-wall i { width:25px; height:29px; background:#e9bd67; border:4px solid #8b7856; box-shadow:0 0 15px #e9bd6750; }
+.cottage-wall b { width:34px; height:57px; background:#687858; align-self:end; border:3px solid #8b7856; border-bottom:0; }
+.cottage-path { position:absolute; width:60px; height:24px; left:65px; bottom:-20px; background:#baad88; clip-path:polygon(22% 0,78% 0,100% 100%,0 100%); }
+.adventure-dialog { width:min(760px,calc(100% - 28px)); max-height:calc(100dvh - 28px); padding:0; border:1px solid #cab78f; border-radius:20px; color:#354b3d; background:#faf3e3; box-shadow:0 24px 100px #17291e55; }
+.adventure-dialog::backdrop { background:#20392dcc; backdrop-filter:blur(5px); }
+.adventure-paper { padding:clamp(20px,4vw,40px); }
+.adventure-paper h1 { font:normal clamp(28px,4vw,40px) Georgia,serif; margin:14px 0 22px; }
+.adventure-paper p { font-size:14px; line-height:1.65; }
+.tutorial-instructions span { color:#687263; }
+.practice { padding:18px; border:1px solid #d7c79f; border-radius:12px; background:#eee7d2; }
+.practice-board { display:flex; gap:10px; width:max-content; padding:8px; margin:10px 0; border-radius:8px; }
+.practice-board span { width:55px; height:55px; display:grid; place-items:center; background:#fff9e9; border:2px solid #baa779; border-radius:8px; font-size:25px; font-weight:700; position:relative; }
+.practice-board .is-selected { background:#bed4b5; border-color:#47734e; }
+.practice-board .is-player::after { content:'●'; position:absolute; bottom:-12px; font-size:19px; color:#ac6139; }
+.how-to-play { position:absolute; top:20px; right:20px; padding:10px 14px; border:1px solid #c5b892; border-radius:9px; background:#faf3e3; color:#365b42; font:600 13px 'Segoe UI',sans-serif; cursor:pointer; }
+.assistance-help { margin-top:10px; font-size:11px; line-height:1.6; }
+.assistance-help summary { cursor:pointer; font-weight:700; }
+@media(max-height:700px) { .cottage-emblem { transform:scale(.75); margin:-5px auto 0; height:155px; } .adventure-cover h1 { font-size:48px; } }
