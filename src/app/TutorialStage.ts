@@ -5,53 +5,73 @@ import { WordSelectionInput } from '../input/WordSelectionInput.ts';
 import { WordSelection } from '../selection/WordSelection.ts';
 import { createGameState, requestMovement, updateMovement } from '../simulation/update.ts';
 import { tutorialPath, tutorialStage as stage } from '../stages/tutorial.ts';
+import { createQuestProgress, refreshQuestAvailability } from '../simulation/QuestProgress.ts';
+import { createWordProgress } from '../simulation/WordProgress.ts';
+import { createQuestOverlay } from '../ui/QuestOverlay.ts';
 
 /** Uses the real player renderer, movement and word selection, with isolated practice state. */
 export function mountTutorialStage(host: HTMLElement, onComplete: () => void, onBack: () => void) {
   const root = document.createElement('div'); root.className = 'stage-runtime tutorial-runtime'; host.append(root);
   const panel = document.createElement('section'); panel.className = 'tutorial-coach';
-  panel.innerHTML = `<p class="adventure-eyebrow">BEFORE THE ADVENTURE · ด่านฝึก</p><h1>One word. A new adventure.</h1><p>Spell <b>START</b> · เริ่มต้น</p><p data-instruction role="status"></p><p data-word aria-live="polite"></p><p data-message role="status">เดินตามช่องที่สว่าง · ฝึกได้ไม่จำกัด ไม่เสีย Shards</p><div><button data-reset>Try again · เริ่มใหม่</button><button data-back>Back · กลับ</button></div>`;
+  panel.innerHTML = `<p class="adventure-eyebrow" data-step></p><h1 data-title></h1><p data-instruction role="status"></p><p data-message role="alert"></p><p data-word></p><button data-back>Back</button>`;
   const grid = new LetterGrid(stage.id, stage.grid, stage.letterLayout!);
   let view: GameView;
   try { view = new GameView(root, stage, grid); }
   catch (error) { root.remove(); onBack(); console.error('Tutorial WebGL initialization failed', error); return { dispose() {} }; }
   root.append(panel);
+  const quests = createQuestProgress([{ id: 'tutorial-start', clue: 'Spell the word that means "begin".', targetWord: 'START' }], 'immediate');
+  const words = createWordProgress();
+  refreshQuestAvailability(quests, words);
+  const questOverlay = createQuestOverlay(root, () => {});
+  questOverlay.render(quests, words);
+  const questHud = root.querySelector<HTMLElement>('.quest-hud')!;
   const state = createGameState(stage.playerStart, stage.grid);
-  const instruction = panel.querySelector<HTMLElement>('[data-instruction]')!;
-  const word = panel.querySelector<HTMLElement>('[data-word]')!;
-  const message = panel.querySelector<HTMLElement>('[data-message]')!;
-  let disposed = false, solved = false, pendingSubmit = false, frame = 0, last = performance.now(), successTime = 0;
+  const field = (name: string) => panel.querySelector<HTMLElement>(`[data-${name}]`)!;
+  const stepLabel = field('step'), title = field('title'), instruction = field('instruction'), word = field('word'), message = field('message');
+  // Assign only on change so screen readers announce each step once, not every frame.
+  const show = (element: HTMLElement, text: string) => { if (element.textContent !== text) element.textContent = text; };
+  let disposed = false, solved = false, moved = false, pendingSubmit = false, frame = 0, last = performance.now(), successTime = 0;
   const currentTile = () => grid.getTile(state.player.currentTile.row, state.player.currentTile.column)!;
   const selection = new WordSelection(grid, submission => {
     if (submission.word === 'START') {
       solved = true; state.world.doorOpen = true;
       submission.selectedTileIds.forEach(id => { const tile = grid.getById(id)!; tile.state = 'CORRECT'; tile.correctRemaining = 2; });
-      message.textContent = '✓ START! ประตูเปิดแล้ว — กำลังเข้าสู่กระท่อม';
-      instruction.textContent = 'Well done! Your adventure begins.'; word.textContent = 'S T A R T';
-    } else message.textContent = `You spelled ${submission.word}. ลองใหม่ได้ เดินกลับไป S แล้วสะกด START`;
+      words.completedWords = ['START']; questOverlay.render(quests, words);
+      show(stepLabel, 'TUTORIAL COMPLETE'); show(title, 'Well done!'); show(instruction, 'The door is open. Your adventure begins.');
+      show(message, ''); show(word, 'S T A R T');
+    } else show(message, 'Keep holding the mouse button, then walk to the right letter.');
   });
-  const keyboard = new KeyboardInput(action => { if (!disposed && !solved && !pendingSubmit && !document.hidden) requestMovement(state, action, stage.grid); });
+  const keyboard = new KeyboardInput(action => {
+    if (disposed || solved || pendingSubmit || document.hidden) return;
+    moved = true; requestMovement(state, action, stage.grid);
+  });
   view.renderer.domElement.tabIndex = 0;
   const selectionInput = new WordSelectionInput(view.renderer.domElement,
     () => {
       if (disposed || solved || state.player.targetTile || pendingSubmit) return false;
-      message.textContent = 'กดค้างแล้วเดินต่อกัน · เดินย้อนหนึ่งช่องเพื่อแก้ตัวอักษรได้';
+      show(message, '');
       return selection.start(currentTile().id);
     },
     () => { if (!solved) { if (state.player.targetTile) pendingSubmit = true; else selection.submit(); } },
     () => { pendingSubmit = false; selection.cancel(); });
   const focus = () => view.renderer.domElement.focus();
   const abort = new AbortController();
-  panel.querySelector('[data-reset]')!.addEventListener('click', () => {
-    if (solved) return;
-    selectionInput.reset(); selection.cancel(); pendingSubmit = false; keyboard.clear();
-    Object.assign(state.player, { currentTile: { ...stage.playerStart }, targetTile: null, elapsed: 0 });
-    message.textContent = 'ลองอีกครั้ง: เดินไปหา S ที่สว่าง'; focus();
-  }, { signal: abort.signal });
   panel.querySelector('[data-back]')!.addEventListener('click', () => { dispose(); onBack(); }, { signal: abort.signal });
   function dispose() {
     if (disposed) return; disposed = true; cancelAnimationFrame(frame); abort.abort();
-    keyboard.dispose(); selectionInput.dispose(); view.dispose(); root.remove();
+    keyboard.dispose(); selectionInput.dispose(); questOverlay.dispose(); view.dispose(); root.remove();
+  }
+  /** Steps advance on player actions only: first move, standing on S, then holding the selection. */
+  function coach(text: string): [string, string, string] {
+    if (!moved) return ['STEP 1 / 3 · YOUR QUEST', 'Find the hidden words.',
+      'Each quest is a clue. Spell its word on the board to bring the world to life. Your first quest is START. Use WASD or the arrow keys to move.'];
+    if (!selection.isSelecting) return currentTile().letter === 'S'
+      ? ['STEP 3 / 3 · SPELL', 'Hold to select.', 'Hold the left mouse button on the board, then walk S → T → A → R → T.']
+      : ['STEP 2 / 3 · MOVE', 'Walk to the glowing S.', 'Press WASD or an arrow key once for each step.'];
+    if (text === 'START') return ['STEP 3 / 3 · SPELL', 'Release to submit!', 'Let go of the mouse button.'];
+    return 'START'.startsWith(text)
+      ? ['STEP 3 / 3 · SPELL', 'Keep holding.', `Walk to the glowing ${'START'[text.length]}.`]
+      : ['STEP 3 / 3 · SPELL', 'Wrong letter.', 'Step back one tile to fix it, or release and try again.'];
   }
   function tick(now: number) {
     if (disposed) return;
@@ -63,13 +83,10 @@ export function mountTutorialStage(host: HTMLElement, onComplete: () => void, on
         const validPrefix = 'START'.startsWith(text);
         const next = tutorialPath[selection.isSelecting && validPrefix ? Math.min(text.length, 4) : 0];
         grid.setHovered(grid.getTile(next.row, next.column)!.id);
-        instruction.textContent = selection.isSelecting
-          ? text === 'START' ? '3 / 3 · ปล่อย Space หรือเมาส์เพื่อส่ง START'
-            : validPrefix ? `2 / 3 · กดค้างแล้วเดินไปตัว ${'START'[text.length]} ที่สว่าง`
-              : 'เดินผิดแล้ว? เดินย้อนกลับเพื่อแก้ หรือปล่อยแล้วลองใหม่'
-          : currentTile().letter === 'S' ? '2 / 3 · กด Space หรือเมาส์ซ้ายบนฉากค้าง แล้วเดินสะกดคำ'
-            : '1 / 3 · กด W A S D หรือปุ่มลูกศรทีละครั้ง เดินไปหา S';
-        word.textContent = `Your word: ${text || '—'}   ·   Goal: START`;
+        const [step, heading, body] = coach(text);
+        show(stepLabel, step); show(title, heading); show(instruction, body);
+        questHud.classList.toggle('is-spotlit', !moved);
+        show(word, moved ? `Your word: ${text || '—'}   ·   Goal: START` : '');
       } else {
         grid.setHovered(null); successTime += dt;
         if (successTime >= 1.6) { dispose(); onComplete(); return; }

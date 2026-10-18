@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { stage1 } from '../src/stages/stage1.ts';
 import { createGameState } from '../src/simulation/update.ts';
-import { questStatus, navigateQuest, finishQuestFeedback, resolveQuestWord, createQuestProgress } from '../src/simulation/QuestProgress.ts';
+import { questStatus, navigateQuest, finishQuestFeedback, resolveQuestWord, createQuestProgress, updateQuestPresentation } from '../src/simulation/QuestProgress.ts';
 import { createQuestValidator } from '../src/validation/QuestValidator.ts';
 const setup = () => {
   const state = createGameState(stage1.playerStart, stage1.grid, stage1.quests);
@@ -45,6 +45,20 @@ test('focused completion waits for feedback, skips completed, supports revisitin
   assert.equal(questStatus(s.quests.definitions[s.quests.focusedIndex], s.words), 'COMPLETED');
   navigateQuest(s.quests, 1); s.submit('WATER'); navigateQuest(s.quests, 1);
   finishQuestFeedback(s.quests, s.words); assert.equal(s.quests.focusedIndex, 3);
+});
+test('focus advances in order and waits for a next quest that is still being revealed', () => {
+  const s = setup(), door = s.quests.definitions.findIndex(q => q.targetWord === 'DOOR');
+  s.quests.focusedIndex = door;
+  s.submit('DOOR'); finishQuestFeedback(s.quests, s.words);
+  assert.equal(s.quests.focusedIndex, door);
+  updateQuestPresentation(s.quests, 3.5);
+  assert.equal(s.quests.definitions[s.quests.focusedIndex].targetWord, 'OPEN');
+});
+test('a revealed quest does not steal focus from an unfinished quest', () => {
+  const s = setup();
+  s.submit('DOOR'); finishQuestFeedback(s.quests, s.words);
+  updateQuestPresentation(s.quests, 3.5);
+  assert.equal(s.quests.focusedIndex, 0);
 });
 test('all 720 quest orders complete exactly once with no stage transition', () => {
   function* permutations(values) {

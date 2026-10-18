@@ -209,6 +209,6 @@ test('Stage 4 Next Stage uses fade/dispose/Stage 5 intro/mount/fade without relo
   },{async fadeOut(){events.push('fadeOut');},async showIntro(stage){events.push(`intro:${stage.stageNumber}`);},async fadeIn(){events.push('fadeIn');},dispose(){}});
   manager.start();const first=manager.next();assert.equal(await manager.next(),false);assert.equal(await first,true);
   assert.deepEqual(events,['mount:4','lock:4','fadeOut','dispose:4','intro:5','mount:5','lock:5','fadeIn','unlock:5']);
-  assert.equal(manager.currentStage.kind,'playable');assert.equal(manager.currentStage.title,'The Storm');assert.equal(await manager.next(),false);manager.dispose();
+  assert.equal(manager.currentStage.kind,'playable');assert.equal(manager.currentStage.title,'The Storm');assert.equal(await manager.next(),true);assert.equal(manager.currentStage.stageNumber,6);manager.dispose();
 });
 

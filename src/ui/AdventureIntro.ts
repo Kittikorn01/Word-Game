@@ -101,13 +101,12 @@ export function showTutorial(host: HTMLElement, onClose: () => void, settings: {
 
 export function createAdventureIntro(host: HTMLElement, onStart: () => void, onLearn?: () => void) {
   const element = document.createElement('section'); element.className = 'adventure-intro';
-  element.innerHTML = `<div class="adventure-cover"><p class="adventure-eyebrow">WORD SEARCH ADVENTURE</p><div class="cottage-emblem" aria-hidden="true"><div class="cottage-roof"></div><div class="cottage-wall"><i></i><b></b><i></i></div><div class="cottage-path"></div></div><p class="adventure-eyebrow">CHAPTER 01 · THE JOURNEY BEGINS</p><h1>The Locked<br>Cottage</h1><p>A quiet room. A locked door.<br>The words you find will bring this place to life.</p><p lang="th">อ่านคำใบ้ เดินต่อคำศัพท์ และค้นหาทางออกจากกระท่อม</p><div class="adventure-actions"><button type="button" data-play class="adventure-primary">Learn & play →</button><button type="button" data-skip>Skip tutorial · เริ่มเล่นเลย</button></div><small>Keyboard & mouse · WASD / arrows + Space<br>Start with ◇ 2 Word Shards · No time limit</small></div>`;
+  element.innerHTML = `<div class="adventure-cover"><div class="cottage-emblem" aria-hidden="true"><div class="cottage-roof"></div><div class="cottage-wall"><i></i><b></b><i></i></div><div class="cottage-path"></div></div><p class="adventure-eyebrow">CHAPTER 01 · THE JOURNEY BEGINS</p><h1>Word Search<br>Adventure</h1><p>A quiet room. A locked door.<br>The words you find will bring this place to life.</p><div class="adventure-actions"><button type="button" data-play class="adventure-primary">Learn & play →</button></div></div>`;
   host.append(element);
   let started = false;
   let tutorial: ReturnType<typeof showTutorial> | undefined;
   const start = () => { if (started) return; started = true; element.remove(); onStart(); };
   element.querySelector('[data-play]')!.addEventListener('click', () => { if (onLearn) { element.remove(); onLearn(); } else tutorial = showTutorial(host, start, { introductory: true }); });
-  element.querySelector('[data-skip]')!.addEventListener('click', start);
   element.querySelector<HTMLButtonElement>('[data-play]')!.focus();
   return { dispose() { tutorial?.dispose(); element.remove(); started = true; } };
 }

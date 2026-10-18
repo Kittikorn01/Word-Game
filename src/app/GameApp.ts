@@ -80,7 +80,7 @@ export function mountStage(host: HTMLElement, stage: StageDefinition, onNext: ()
   const questUI = createQuestOverlay(host, index => {
     if (gameplayLocked() || !state.quests.discoveredIds.includes(state.quests.definitions[index]?.id)) return;
     state.quests.focusedIndex = index;
-    state.quests.pendingAdvanceId = null;
+    state.quests.pendingAdvanceId = null; state.quests.revealFocusId = null;
     questUI.render(state.quests, state.words);
   }, !!stage.townProgression || stage.environment === 'workshop-blockout' || stage.environment === 'storm-blockout' || stage.environment === 'archive-blockout');
   questUI.render(state.quests, state.words);

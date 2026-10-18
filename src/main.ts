@@ -41,29 +41,5 @@ function showWelcome() {
     practice = mountTutorialStage(host, () => { void startAdventure(); }, showWelcome);
   });
 }
-// Reuse direct dev entry: a full reload gives each test a fresh runtime and resources.
-let devNavigation: HTMLElement | undefined;
-if (import.meta.env.DEV) {
-  devNavigation = document.createElement('nav');
-  devNavigation.className = 'dev-stage-navigation';
-  devNavigation.setAttribute('aria-label', 'Development stage shortcuts');
-  const label = document.createElement('span');
-  label.textContent = 'DEV / Skip stage';
-  devNavigation.append(label);
-  for (const stage of stages) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.textContent = String(stage.stageNumber);
-    button.setAttribute('aria-label', `Skip to Stage ${stage.stageNumber}: ${stage.title}`);
-    button.title = `Stage ${stage.stageNumber}: ${stage.title} (fresh start)`;
-    button.addEventListener('click', () => {
-      const url = new URL(location.href);
-      url.searchParams.set('stage', String(stage.stageNumber));
-      location.assign(url.href);
-    });
-    devNavigation.append(button);
-  }
-  host.append(devNavigation);
-}
-// Dispose the previous runtime and dev controls during development hot reload.
-if (import.meta.hot) import.meta.hot.dispose(() => { previewDisposed = true; intro?.dispose(); practice?.dispose(); devNavigation?.remove(); manager.dispose(); });
+// Dispose the previous runtime during development hot reload.
+if (import.meta.hot) import.meta.hot.dispose(() => { previewDisposed = true; intro?.dispose(); practice?.dispose(); manager.dispose(); });

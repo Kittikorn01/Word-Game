@@ -3,6 +3,7 @@ import type { StageDefinition } from './types.ts';
 /** Stage 5.1 vocabulary only; retain the existing Stage 4 destination ID. */
 export const stage5: StageDefinition = {
   id: 'stage-5-placeholder', stageNumber: 5, title: 'The Storm', kind: 'playable', environment: 'storm-blockout',
+  nextStageId: 'stage-6-word-archive',
   grid: { rows: 7, columns: 7, tileSize: 1, origin: { x: 0, z: 1 } }, playerStart: { row: 6, column: 0 },
   tileTheme: 'forest-stone',
   // Unique cardinal paths and controlled decoys; see STAGE5_VOCABULARY.md.

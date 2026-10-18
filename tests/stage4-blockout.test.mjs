@@ -17,6 +17,7 @@ test('Stage 3 transitions through the existing intro to a vocabulary Stage 4 tha
   manager.start();assert.equal(await manager.next(),true);
   assert.deepEqual(events,[stages[2].id,'The Silent Workshop',stage4.id]);
   assert.equal(await manager.next(),true);assert.equal(manager.currentStage.stageNumber,5);
+  assert.equal(await manager.next(),true);assert.equal(manager.currentStage.stageNumber,6);
   assert.equal(await manager.next(),false);manager.dispose();
   const state=createGameState(stage4.playerStart,stage4.grid,stage4.quests);
   const completion=new StageCompletionController(stage4.id,()=>assert.fail('unplayed stage completed'));

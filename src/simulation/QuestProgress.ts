@@ -12,6 +12,8 @@ export interface QuestProgress {
   presentations: { questId: string; remaining: number }[];
   focusedIndex: number;
   pendingAdvanceId: string | null;
+  /** Next quest in order is still in its reveal banner; focus it once it joins the list. */
+  revealFocusId: string | null;
 }
 export function createQuestProgress(definitions: readonly QuestDefinition[] = [], presentationMode: QuestProgress['presentationMode'] = 'timed'): QuestProgress {
   const ids = new Set<string>(), targets = new Set<string>();
@@ -37,7 +39,7 @@ export function createQuestProgress(definitions: readonly QuestDefinition[] = []
   };
   quests.forEach(visit);
   const discoveredIds = quests.filter(q => !q.requires.length && !q.requiresWorld).map(q => q.id);
-  return { definitions: Object.freeze(quests), presentationMode, discoveredIds, presentations: [], focusedIndex: Math.max(0,quests.findIndex(q => discoveredIds.includes(q.id))), pendingAdvanceId: null };
+  return { definitions: Object.freeze(quests), presentationMode, discoveredIds, presentations: [], focusedIndex: Math.max(0,quests.findIndex(q => discoveredIds.includes(q.id))), pendingAdvanceId: null, revealFocusId: null };
 }
 /** Completed words are the single canonical completion ledger. */
 export function questStatus(quest: QuestDefinition, words: WordProgress): QuestStatus {
@@ -48,7 +50,7 @@ export function questStatus(quest: QuestDefinition, words: WordProgress): QuestS
     (!quest.requiresWorld || words.worldConditions?.[quest.requiresWorld]) ? 'AVAILABLE' : 'LOCKED';
 }
 export function navigateQuest(progress: QuestProgress, direction: -1 | 1): void {
-  progress.pendingAdvanceId = null;
+  progress.pendingAdvanceId = null; progress.revealFocusId = null;
   const indices = progress.definitions.flatMap((q,i) => progress.discoveredIds.includes(q.id) ? [i] : []);
   if (indices.length) progress.focusedIndex = indices[(indices.indexOf(progress.focusedIndex) + direction + indices.length) % indices.length];
 }
@@ -82,7 +84,10 @@ export function finishQuestFeedback(progress: QuestProgress, words: WordProgress
   if (!id || progress.definitions[progress.focusedIndex]?.id !== id) return;
   for (let offset = 1; offset < progress.definitions.length; offset++) {
     const index = (progress.focusedIndex + offset) % progress.definitions.length;
-    if (progress.discoveredIds.includes(progress.definitions[index].id) && questStatus(progress.definitions[index], words) === 'AVAILABLE') { progress.focusedIndex = index; return; }
+    const quest = progress.definitions[index];
+    if (questStatus(quest, words) !== 'AVAILABLE') continue;
+    if (progress.discoveredIds.includes(quest.id)) { progress.focusedIndex = index; return; }
+    if (progress.presentations.some(p => p.questId === quest.id)) { progress.revealFocusId = quest.id; return; }
   }
 }
 
@@ -93,6 +98,10 @@ export function updateQuestPresentation(progress: QuestProgress, dt: number): bo
   current.remaining -= dt;
   if (current.remaining > 1e-9) return false;
   if (!progress.discoveredIds.includes(current.questId)) progress.discoveredIds.push(current.questId);
+  if (progress.revealFocusId === current.questId) {
+    progress.focusedIndex = progress.definitions.findIndex(q => q.id === current.questId);
+    progress.revealFocusId = null;
+  }
   progress.presentations.shift();
   return true;
 }

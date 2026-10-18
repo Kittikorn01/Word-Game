@@ -158,20 +158,6 @@ canvas { display: block; width: 100%; height: 100%; }
 @media (max-width: 600px) { .word-selection__word { font-size: 22px; } }
 
 
-/* Development-only shortcuts; mounted outside stage-owned overlays. */
-.dev-stage-navigation {
-  position: fixed; top: 12px; right: 12px; z-index: 100;
-  display: flex; flex-wrap: wrap; gap: 5px; width: 120px;
-  padding: 7px; border: 1px solid #aaa28f; border-radius: 8px;
-  background: #faf5e8ed; color: #514d43; font: 11px system-ui, sans-serif;
-}
-.dev-stage-navigation span { width: 100%; text-align: center; }
-.dev-stage-navigation button {
-  flex: 1; min-height: 28px; border: 1px solid #aaa28f; border-radius: 4px;
-  background: #eee8da; color: #394b3e; font: 600 12px system-ui, sans-serif; cursor: pointer;
-}
-.dev-stage-navigation button:hover { background: #dce4d6; }
-.dev-stage-navigation button:focus-visible { outline: 2px solid #527f77; outline-offset: 2px; }
 
 .stage-runtime[data-stage-id='stage-3-busy-little-town'] .quest-hud__summary { flex: 1; }
 .stage-runtime[data-stage-id='stage-3-busy-little-town'] .quest-hud__row[data-state='LOCKED'] {
@@ -265,11 +251,17 @@ button.adventure-primary { background:#365b42; border-color:#365b42; color:#fff7
 .practice-board .is-next { outline:2px dashed #a77931; outline-offset:2px; }
 .practice-step { min-height:3.3em; font-weight:600; }
 
-.tutorial-coach { position:absolute; top:20px; left:20px; width:min(340px,calc(100% - 40px)); box-sizing:border-box; padding:20px; border:1px solid #b4b99b; border-radius:16px; background:#faf4e8ef; box-shadow:0 10px 30px #283b251a; color:#354b3d; }
+.tutorial-coach { position:absolute; top:50%; right:24px; transform:translateY(-50%); width:300px; box-sizing:border-box; padding:16px 20px; border:1px solid #b4b99b; border-radius:16px; background:#faf4e8ef; box-shadow:0 10px 30px #283b251a; color:#354b3d; }
+.tutorial-coach [data-message] { color:#a14d2a; font-weight:700; }
+.tutorial-coach p:empty { display:none; }
+.tutorial-runtime .quest-hud.is-spotlit { animation:quest-spotlight 1.4s ease-in-out infinite; }
+@keyframes quest-spotlight { 50% { box-shadow:0 4px 0 #4c382b, 0 0 0 6px #e8b75a99; } }
+@media (prefers-reduced-motion: reduce) { .tutorial-runtime .quest-hud.is-spotlit { animation:none; box-shadow:0 4px 0 #4c382b, 0 0 0 6px #e8b75a99; } }
 .tutorial-coach h1 { font:normal 25px Georgia,serif; margin:8px 0; }
 .tutorial-coach p { font-size:14px; line-height:1.6; }
-.tutorial-coach [data-instruction] { font-weight:700; min-height:45px; }
+.tutorial-coach [data-instruction] { font-weight:700; }
 .tutorial-coach [data-word] { color:#815b25; font-weight:700; }
 .tutorial-coach button { cursor:pointer; background:#eee6d2; color:#354b3d; border:1px solid #c1b393; border-radius:7px; padding:8px; margin-right:5px; }
 .stage-intro__story { max-width:510px; margin:24px auto 0; font-size:clamp(15px,2vw,20px); line-height:1.7; padding:0 24px; }
-@media (max-width:900px) { .tutorial-coach { top:auto; bottom:12px; left:12px; width:calc(100% - 24px); padding:10px 16px; } .tutorial-coach h1,.tutorial-coach .adventure-eyebrow { display:none; } .tutorial-coach p { margin:4px 0; } .tutorial-coach [data-instruction] { min-height:0; } .tutorial-runtime canvas { transform:translateY(-65px); } }
+/* Below this width the board fills the centre, so the coach moves under it as a short strip. */
+@media (max-width:1200px) { .tutorial-coach { top:auto; bottom:12px; right:auto; left:50%; transform:translateX(-50%); width:min(520px,calc(100% - 24px)); padding:8px 16px; text-align:center; } .tutorial-coach .adventure-eyebrow,.tutorial-coach [data-word] { display:none; } .tutorial-coach h1 { font-size:19px; margin:2px 0; } .tutorial-coach p { margin:2px 0; } .tutorial-coach button { padding:4px 8px; } .tutorial-runtime canvas { transform:translateY(-65px); } }
